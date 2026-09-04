@@ -10,8 +10,9 @@ export default async function UnlockPage() {
       <p className="text-xs uppercase tracking-[0.2em] text-lime/80">Access</p>
       <h1 className="mt-2 text-3xl font-semibold">Paste your access code</h1>
       <p className="mt-3 text-sm leading-6 text-white/60">
-        After Stripe Checkout you land on a success page with a code. It is also stored in
-        a cookie on this browser. Use this page to unlock another device.
+        After Stripe Checkout you land on a success page with a code. Payment Link
+        checkouts may return with <span className="text-white">?paid=trial</span> (or
+        weekly / pro). Use this page to paste a code on another device.
       </p>
       {access.ok && (
         <p className="mt-4 rounded-xl border border-lime/30 bg-lime/10 px-4 py-3 text-sm text-lime">

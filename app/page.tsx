@@ -1,18 +1,31 @@
 import Link from "next/link";
+import { PaidReturnNotice } from "@/components/paid-return";
 import { Pricing } from "@/components/pricing";
 import { RatesTable } from "@/components/rates-table";
 import { isStripeConfigured, PAYMENT_LINKS } from "@/lib/config";
 import { getRates } from "@/lib/rates";
+import { isPlanId } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
-export default async function HomePage() {
+export default async function HomePage({
+  searchParams,
+}: {
+  searchParams: Promise<{ paid?: string }>;
+}) {
   const rates = await getRates(false);
   const stripeReady = isStripeConfigured();
+  const { paid } = await searchParams;
+  const paidPlan = isPlanId(paid) ? paid : null;
 
   return (
     <main className="relative mx-auto w-full max-w-6xl px-4 pb-20 pt-12">
       <div className="scanline pointer-events-none absolute inset-0 opacity-40" />
+      {paidPlan && (
+        <div className="relative">
+          <PaidReturnNotice plan={paidPlan} />
+        </div>
+      )}
       <section className="relative grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
         <div>
           <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/60">
@@ -24,15 +37,16 @@ export default async function HomePage() {
           </h1>
           <p className="mt-5 max-w-xl text-base leading-7 text-white/65 md:text-lg">
             Watch live perpetual funding rates across Binance USDT-M and Bybit.
-            Free users see the top 5. Paying users get the full book and optional
-            Telegram pings when |funding| spikes.
+            Free users see the top 5. A 29 SEK trial unlocks the full book for 3 days.
+            Optional Telegram pings when |funding| spikes. Tips only — we never trade
+            for you.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             <a
-              href={PAYMENT_LINKS.pro ?? "#pricing"}
+              href={PAYMENT_LINKS.trial ?? "#pricing"}
               className="rounded-xl bg-lime px-5 py-3 text-sm font-semibold text-black"
             >
-              Unlock Pro — 399 SEK
+              Try 3 days — 29 SEK
             </a>
             <Link
               href="/radar"
@@ -68,8 +82,8 @@ export default async function HomePage() {
               extremes surface first.
             </li>
             <li>
-              <span className="mono text-lime">03</span> Stripe Checkout unlocks the full
-              radar + alert settings.
+              <span className="mono text-lime">03</span> Stripe unlocks the full radar.
+              Trial first, then Weekly if you want another cycle.
             </li>
           </ol>
         </div>

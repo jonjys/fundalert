@@ -16,7 +16,7 @@ function parseThreshold(value: unknown): number | null {
 export async function GET() {
   const access = await getAccessFromCookies();
   if (!access.ok || !access.token) {
-    return NextResponse.json({ error: "Unlock Pro/Weekly/Lifetime first." }, { status: 401 });
+    return NextResponse.json({ error: "Unlock Trial, Weekly, Pro, or Lifetime first." }, { status: 401 });
   }
   const payload = verifyToken(access.token);
   const entitlement = payload ? await getEntitlementBySession(payload.sid) : null;
@@ -32,7 +32,7 @@ export async function GET() {
 export async function POST(request: Request) {
   const access = await getAccessFromCookies();
   if (!access.ok || !access.token) {
-    return NextResponse.json({ error: "Unlock Pro/Weekly/Lifetime first." }, { status: 401 });
+    return NextResponse.json({ error: "Unlock Trial, Weekly, Pro, or Lifetime first." }, { status: 401 });
   }
   const payload = verifyToken(access.token);
   if (!payload) {

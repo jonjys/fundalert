@@ -37,10 +37,10 @@ export function Header({ access }: { access: AccessState }) {
             </span>
           ) : (
             <a
-              href={PAYMENT_LINKS.pro ?? "/#pricing"}
+              href={PAYMENT_LINKS.trial ?? "/#pricing"}
               className="ml-1 rounded-full bg-lime px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-black"
             >
-              Get access
+              Try 3 days
             </a>
           )}
         </nav>

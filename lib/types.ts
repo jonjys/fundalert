@@ -1,4 +1,10 @@
-export type PlanId = "weekly" | "pro" | "lifetime";
+export type PlanId = "trial" | "weekly" | "pro" | "lifetime";
+
+export const PLAN_IDS: readonly PlanId[] = ["trial", "weekly", "pro", "lifetime"];
+
+export function isPlanId(value: unknown): value is PlanId {
+  return typeof value === "string" && (PLAN_IDS as readonly string[]).includes(value);
+}
 
 export type ExchangeId = "binance" | "bybit" | "okx";
 

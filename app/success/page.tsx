@@ -1,18 +1,28 @@
 import Link from "next/link";
 import { ActivateAccess } from "@/components/activate-access";
+import { PaidReturnNotice } from "@/components/paid-return";
 import { grantFromCheckoutSession } from "@/lib/grant";
 import { getStripe } from "@/lib/stripe";
+import { isPlanId } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
 
 export default async function SuccessPage({
   searchParams,
 }: {
-  searchParams: Promise<{ session_id?: string }>;
+  searchParams: Promise<{ session_id?: string; paid?: string }>;
 }) {
-  const { session_id: sessionId } = await searchParams;
+  const { session_id: sessionId, paid } = await searchParams;
+  const paidPlan = isPlanId(paid) ? paid : null;
 
   if (!sessionId) {
+    if (paidPlan) {
+      return (
+        <main className="mx-auto max-w-xl px-4 py-16">
+          <PaidReturnNotice plan={paidPlan} />
+        </main>
+      );
+    }
     return (
       <main className="mx-auto max-w-xl px-4 py-16">
         <h1 className="text-3xl font-semibold">Missing checkout session</h1>
@@ -30,10 +40,26 @@ export default async function SuccessPage({
   if (!process.env.STRIPE_SECRET_KEY) {
     return (
       <main className="mx-auto max-w-xl px-4 py-16">
-        <h1 className="text-3xl font-semibold">Stripe is not configured</h1>
-        <p className="mt-3 text-white/60">
-          Set STRIPE_SECRET_KEY to redeem checkout sessions.
-        </p>
+        {paidPlan ? (
+          <PaidReturnNotice plan={paidPlan} />
+        ) : (
+          <>
+            <h1 className="text-3xl font-semibold">Payment received</h1>
+            <p className="mt-3 text-white/60">
+              Checkout finished. Automatic access-code minting needs a Stripe secret on
+              the server. Open the radar, or email billing@nyttolabs.com with your receipt
+              if the book is still locked. Trial is 3 days of full-book access.
+            </p>
+            <div className="mt-6 flex gap-4 text-sm">
+              <Link href="/radar" className="text-lime hover:underline">
+                Open radar
+              </Link>
+              <Link href="/unlock" className="text-white/70 hover:underline">
+                Unlock with a code
+              </Link>
+            </div>
+          </>
+        )}
       </main>
     );
   }
@@ -65,11 +91,23 @@ export default async function SuccessPage({
       <main className="mx-auto max-w-xl px-4 py-16">
         <h1 className="text-3xl font-semibold">Could not redeem session</h1>
         <p className="mt-3 text-sm text-white/60">{error}</p>
+        {paidPlan && (
+          <div className="mt-8">
+            <PaidReturnNotice plan={paidPlan} />
+          </div>
+        )}
       </main>
     );
   }
 
   if (unpaid || !token || !plan || !email) {
+    if (paidPlan) {
+      return (
+        <main className="mx-auto max-w-xl px-4 py-16">
+          <PaidReturnNotice plan={paidPlan} />
+        </main>
+      );
+    }
     return (
       <main className="mx-auto max-w-xl px-4 py-16">
         <h1 className="text-3xl font-semibold">Payment not complete</h1>
@@ -87,8 +125,9 @@ export default async function SuccessPage({
       <h1 className="mt-2 text-3xl font-semibold">Access unlocked</h1>
       <p className="mt-3 text-sm leading-6 text-white/60">
         Plan <span className="text-white">{plan}</span> for{" "}
-        <span className="text-white">{email}</span>. Save this code — we store only a
-        hash. Informational tool only; not financial advice.
+        <span className="text-white">{email}</span>
+        {plan === "trial" ? " — 3-day full-book access." : "."} Save this code — we store
+        only a hash. Informational tool only; not financial advice.
       </p>
       <ActivateAccess token={token} />
       <div className="mt-8 flex gap-4 text-sm">
