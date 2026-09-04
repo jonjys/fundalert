@@ -81,6 +81,24 @@ function splitSymbol(symbol: string): { base: string; quote: string } {
   return { base: upper, quote: "USDT" };
 }
 
+function isNoiseSymbol(symbol: string): boolean {
+  const upper = symbol.toUpperCase();
+  if (/[0-9]+[LS](USDT|USDC)$/.test(upper)) return true;
+  if (upper.includes("_")) return true;
+  return false;
+}
+
+function shortError(err: string): string {
+  const collapsed = err.replace(/\s+/g, " ").replace(/<[^>]+>/g, "").trim();
+  if (/restricted location|451/i.test(collapsed)) return "geo-blocked";
+  if (/CloudFront|block access from your country/i.test(collapsed)) return "geo-blocked (CDN)";
+  if (/timed out|AbortError|Timeout/i.test(collapsed)) return "timeout";
+  const host = collapsed.match(/https?:\/\/([^/\s]+)/)?.[1];
+  const status = collapsed.match(/HTTP (\d+)/)?.[1];
+  if (host && status) return `${host} HTTP ${status}`;
+  return collapsed.slice(0, 140);
+}
+
 function annualized(fundingRate: number, intervalHours: number): number {
   const hours = intervalHours > 0 ? intervalHours : 8;
   return fundingRate * (365 * 24) / hours * 100;
@@ -117,7 +135,7 @@ function parseBinance(data: unknown): FundingRate[] {
     const rec = item as Record<string, unknown>;
     const symbol = String(rec.symbol || "");
     if (!symbol.endsWith("USDT") && !symbol.endsWith("USDC")) continue;
-    if (symbol.includes("_")) continue;
+    if (symbol.includes("_") || isNoiseSymbol(symbol)) continue;
     const fundingRate = asNumber(rec.lastFundingRate);
     if (fundingRate === null) continue;
     rows.push(
@@ -149,6 +167,7 @@ function parseBybit(data: unknown): FundingRate[] {
     const fundingRate = asNumber(row.fundingRate);
     if (!symbol || fundingRate === null) continue;
     if (!symbol.includes("USDT") && !symbol.includes("USDC")) continue;
+    if (isNoiseSymbol(symbol)) continue;
     const interval = asNumber(row.fundingIntervalHour) ?? 8;
     rows.push(
       toRow({
@@ -217,7 +236,7 @@ async function loadUncached(): Promise<Omit<RatesPayload, "limited">> {
       })
       .catch((err: unknown) => {
         sources.binance = "error";
-        errors.binance = err instanceof Error ? err.message : String(err);
+        errors.binance = shortError(err instanceof Error ? err.message : String(err));
       }),
     fetchFirst(BYBIT_URLS)
       .then((data) => {
@@ -226,7 +245,7 @@ async function loadUncached(): Promise<Omit<RatesPayload, "limited">> {
       })
       .catch((err: unknown) => {
         sources.bybit = "error";
-        errors.bybit = err instanceof Error ? err.message : String(err);
+        errors.bybit = shortError(err instanceof Error ? err.message : String(err));
       }),
     fetchOkxMajors()
       .then((rows) => {
@@ -235,7 +254,7 @@ async function loadUncached(): Promise<Omit<RatesPayload, "limited">> {
       })
       .catch((err: unknown) => {
         sources.okx = "error";
-        errors.okx = err instanceof Error ? err.message : String(err);
+        errors.okx = shortError(err instanceof Error ? err.message : String(err));
       }),
   ];
 
