@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PLANS } from "@/lib/config";
+import { PAYMENT_LINKS, PLANS } from "@/lib/config";
 import type { PlanId } from "@/lib/types";
 
 export function Pricing({ stripeReady }: { stripeReady: boolean }) {
@@ -10,6 +10,19 @@ export function Pricing({ stripeReady }: { stripeReady: boolean }) {
 
   async function checkout(plan: PlanId) {
     setError(null);
+    const link = PAYMENT_LINKS[plan];
+
+    // Prefer live Payment Links so sales work without STRIPE_SECRET_KEY on Vercel.
+    if (link) {
+      window.location.assign(link);
+      return;
+    }
+
+    if (!stripeReady) {
+      setError("Checkout is not configured yet.");
+      return;
+    }
+
     setBusy(plan);
     try {
       const res = await fetch("/api/checkout", {
@@ -41,6 +54,7 @@ export function Pricing({ stripeReady }: { stripeReady: boolean }) {
       <div className="grid gap-4 md:grid-cols-3">
         {(Object.keys(PLANS) as PlanId[]).map((id) => {
           const plan = PLANS[id];
+          const canBuy = Boolean(PAYMENT_LINKS[id]) || stripeReady;
           return (
             <article
               key={id}
@@ -71,7 +85,7 @@ export function Pricing({ stripeReady }: { stripeReady: boolean }) {
               </ul>
               <button
                 type="button"
-                disabled={!stripeReady || busy !== null}
+                disabled={!canBuy || busy !== null}
                 onClick={() => checkout(id)}
                 className={`mt-6 rounded-xl px-4 py-3 text-sm font-semibold ${
                   plan.highlighted
@@ -79,19 +93,13 @@ export function Pricing({ stripeReady }: { stripeReady: boolean }) {
                     : "bg-white/10 text-white hover:bg-white/16"
                 } disabled:cursor-not-allowed disabled:opacity-50`}
               >
-                {busy === id ? "Redirecting…" : stripeReady ? `Unlock ${plan.name}` : "Stripe env missing"}
+                {busy === id ? "Redirecting…" : canBuy ? `Unlock ${plan.name}` : "Coming soon"}
               </button>
             </article>
           );
         })}
       </div>
       {error && <p className="mt-4 text-sm text-rose">{error}</p>}
-      {!stripeReady && (
-        <p className="mt-4 text-sm text-white/45">
-          Checkout needs <code className="mono">STRIPE_SECRET_KEY</code> and the three{" "}
-          <code className="mono">STRIPE_PRICE_*</code> env vars. See README.
-        </p>
-      )}
     </section>
   );
 }
