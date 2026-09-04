@@ -1,0 +1,78 @@
+@import "tailwindcss";
+
+:root {
+  --bg: #07080c;
+  --bg-elev: #10131a;
+  --line: rgba(232, 236, 248, 0.1);
+  --lime: #c8ff3d;
+  --mint: #6dffc5;
+  --rose: #ff4d7a;
+  --amber: #ffc857;
+  --ink: #f4f6fb;
+  --muted: #8b93a7;
+}
+
+@theme inline {
+  --color-background: var(--bg);
+  --color-foreground: var(--ink);
+  --color-lime: var(--lime);
+  --color-mint: var(--mint);
+  --color-rose: var(--rose);
+  --color-amber: var(--amber);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+html,
+body {
+  background: var(--bg);
+  color: var(--ink);
+}
+
+body {
+  font-family: var(--font-sans), ui-sans-serif, system-ui, sans-serif;
+  min-height: 100%;
+}
+
+.mono {
+  font-family: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+
+.grid-bg {
+  background-image:
+    linear-gradient(rgba(200, 255, 61, 0.04) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200, 255, 61, 0.04) 1px, transparent 1px),
+    radial-gradient(1200px 500px at 50% -10%, rgba(200, 255, 61, 0.12), transparent 55%);
+  background-size: 48px 48px, 48px 48px, auto;
+}
+
+.scanline {
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    transparent 0,
+    transparent 3px,
+    rgba(0, 0, 0, 0.08) 4px
+  );
+}
+
+.pulse-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: var(--lime);
+  box-shadow: 0 0 0 0 rgba(200, 255, 61, 0.7);
+  animation: ping-live 1.8s infinite;
+}
+
+@keyframes ping-live {
+  0% {
+    box-shadow: 0 0 0 0 rgba(200, 255, 61, 0.55);
+  }
+  70% {
+    box-shadow: 0 0 0 10px rgba(200, 255, 61, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(200, 255, 61, 0);
+  }
+}
