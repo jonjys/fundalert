@@ -1,34 +1,28 @@
 "use client";
 
 import { useState } from "react";
-import { PAYMENT_LINKS, PLANS } from "@/lib/config";
+import { lifetimeMailto, PAYMENT_LINKS, PLANS } from "@/lib/config";
 import type { PlanId } from "@/lib/types";
 
+const ctaClass = (highlighted: boolean | undefined, extra = "") =>
+  `mt-6 inline-flex items-center justify-center rounded-xl px-4 py-3 text-center text-sm font-semibold ${
+    highlighted
+      ? "bg-lime text-black hover:bg-[#d8ff6a]"
+      : "bg-white/10 text-white hover:bg-white/16"
+  } ${extra}`;
+
 export function Pricing({ stripeReady }: { stripeReady: boolean }) {
-  const [busy, setBusy] = useState<PlanId | null>(null);
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  async function checkout(plan: PlanId) {
+  async function checkoutLifetime() {
     setError(null);
-    const link = PAYMENT_LINKS[plan];
-
-    // Prefer live Payment Links so sales work without STRIPE_SECRET_KEY on Vercel.
-    if (link) {
-      window.location.assign(link);
-      return;
-    }
-
-    if (!stripeReady) {
-      setError("Checkout is not configured yet.");
-      return;
-    }
-
-    setBusy(plan);
+    setBusy(true);
     try {
       const res = await fetch("/api/checkout", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ plan }),
+        body: JSON.stringify({ plan: "lifetime" }),
       });
       const json = (await res.json()) as { url?: string; error?: string };
       if (!res.ok || !json.url) {
@@ -37,7 +31,7 @@ export function Pricing({ stripeReady }: { stripeReady: boolean }) {
       window.location.assign(json.url);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Checkout failed");
-      setBusy(null);
+      setBusy(false);
     }
   }
 
@@ -47,14 +41,15 @@ export function Pricing({ stripeReady }: { stripeReady: boolean }) {
         <p className="text-xs uppercase tracking-[0.22em] text-lime/80">Self-serve</p>
         <h2 className="mt-2 text-3xl font-semibold tracking-tight">Paywall. Then the full book.</h2>
         <p className="mt-3 text-white/60">
-          Stripe Checkout in SEK. Weekly and Pro are subscriptions; Lifetime is one-time.
-          After payment you get an access code — we never hold your coins.
+          Weekly and Pro check out on Stripe immediately (99 SEK / 399 SEK). Lifetime is
+          1,990 SEK one-time — email billing if the live link is not up yet. We never hold
+          your coins.
         </p>
       </div>
       <div className="grid gap-4 md:grid-cols-3">
         {(Object.keys(PLANS) as PlanId[]).map((id) => {
           const plan = PLANS[id];
-          const canBuy = Boolean(PAYMENT_LINKS[id]) || stripeReady;
+          const paymentHref = PAYMENT_LINKS[id];
           return (
             <article
               key={id}
@@ -83,18 +78,24 @@ export function Pricing({ stripeReady }: { stripeReady: boolean }) {
                   </li>
                 ))}
               </ul>
-              <button
-                type="button"
-                disabled={!canBuy || busy !== null}
-                onClick={() => checkout(id)}
-                className={`mt-6 rounded-xl px-4 py-3 text-sm font-semibold ${
-                  plan.highlighted
-                    ? "bg-lime text-black hover:bg-[#d8ff6a]"
-                    : "bg-white/10 text-white hover:bg-white/16"
-                } disabled:cursor-not-allowed disabled:opacity-50`}
-              >
-                {busy === id ? "Redirecting…" : canBuy ? `Unlock ${plan.name}` : "Coming soon"}
-              </button>
+              {paymentHref ? (
+                <a href={paymentHref} className={ctaClass(plan.highlighted)}>
+                  Unlock {plan.name}
+                </a>
+              ) : id === "lifetime" && stripeReady ? (
+                <button
+                  type="button"
+                  disabled={busy}
+                  onClick={checkoutLifetime}
+                  className={ctaClass(plan.highlighted, "disabled:cursor-not-allowed disabled:opacity-50")}
+                >
+                  {busy ? "Redirecting…" : "Unlock Lifetime"}
+                </button>
+              ) : id === "lifetime" ? (
+                <a href={lifetimeMailto()} className={ctaClass(plan.highlighted)}>
+                  Email for Lifetime
+                </a>
+              ) : null}
             </article>
           );
         })}

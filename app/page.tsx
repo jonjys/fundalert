@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { Pricing } from "@/components/pricing";
 import { RatesTable } from "@/components/rates-table";
-import { isStripeConfigured } from "@/lib/config";
+import { isStripeConfigured, PAYMENT_LINKS } from "@/lib/config";
 import { getRates } from "@/lib/rates";
 
 export const dynamic = "force-dynamic";
@@ -28,12 +28,12 @@ export default async function HomePage() {
             Telegram pings when |funding| spikes.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
-            <Link
-              href="#pricing"
+            <a
+              href={PAYMENT_LINKS.pro ?? "#pricing"}
               className="rounded-xl bg-lime px-5 py-3 text-sm font-semibold text-black"
             >
-              Unlock full radar
-            </Link>
+              Unlock Pro — 399 SEK
+            </a>
             <Link
               href="/radar"
               className="rounded-xl border border-white/15 px-5 py-3 text-sm text-white"

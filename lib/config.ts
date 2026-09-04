@@ -4,12 +4,22 @@ export const FREE_RATE_LIMIT = 5;
 export const ACCESS_COOKIE = "fa_access";
 export const DEFAULT_ALERT_THRESHOLD_PCT = 0.05;
 
-/** Live Stripe Payment Links (AI Commerce OS). Prefer these over Checkout Sessions when env secrets are missing. */
+/** Live Stripe Payment Links (AI Commerce OS). Primary Weekly/Pro CTAs — no STRIPE_SECRET_KEY required. */
 export const PAYMENT_LINKS: Partial<Record<PlanId, string>> = {
   weekly: "https://buy.stripe.com/9B6eVc2TLaR85io9j78og0n",
   pro: "https://buy.stripe.com/dRm5kC9i9aR8fX22UJ8og0o",
   // lifetime payment link pending approval — omit until live
 };
+
+export const BILLING_EMAIL = "billing@nyttolabs.com";
+
+export function lifetimeMailto(): string {
+  const subject = encodeURIComponent("Fundalert Lifetime — 1,990 SEK");
+  const body = encodeURIComponent(
+    "I want Fundalert Lifetime (1,990 SEK one-time). Please send a payment link.",
+  );
+  return `mailto:${BILLING_EMAIL}?subject=${subject}&body=${body}`;
+}
 
 export const PLANS: Record<
   PlanId,
