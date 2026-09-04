@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { PAYMENT_LINKS } from "@/lib/config";
 import type { AccessState } from "@/lib/types";
 
 const links = [
@@ -35,12 +36,12 @@ export function Header({ access }: { access: AccessState }) {
               {access.plan}
             </span>
           ) : (
-            <Link
-              href="/#pricing"
+            <a
+              href={PAYMENT_LINKS.pro ?? "/#pricing"}
               className="ml-1 rounded-full bg-lime px-3 py-1.5 text-xs font-semibold uppercase tracking-wider text-black"
             >
               Get access
-            </Link>
+            </a>
           )}
         </nav>
       </div>
