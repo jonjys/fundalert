@@ -14,8 +14,8 @@ export default async function AlertsPage() {
       <main className="mx-auto w-full max-w-xl px-4 py-16">
         <h1 className="text-3xl font-semibold">Telegram alerts</h1>
         <p className="mt-3 text-white/60">
-          Alerts are for paying users. Unlock Weekly, Pro, or Lifetime, then paste your
-          Telegram chat id.
+          Alerts are for paying users. Unlock Trial, Weekly, Pro, or Lifetime, then paste
+          your Telegram chat id.
         </p>
         <Link
           href="/#pricing"

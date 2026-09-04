@@ -80,7 +80,7 @@ export function RatesTable({
         <div className="border-b border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-white/70">
           Free view is the top {data.freeLimit} by absolute funding.{" "}
           <a href="#pricing" className="text-lime hover:underline">
-            Unlock the full book
+            Try 3 days — 29 SEK
           </a>
           .
         </div>

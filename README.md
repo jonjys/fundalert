@@ -4,7 +4,7 @@ Live crypto perpetual **funding-rate radar** plus optional Telegram alerts.
 
 No custody. No auto-trading. No promise of profit. Informational market data only — **not financial advice**.
 
-Free visitors see the top 5 contracts by absolute funding. Weekly / Pro / Lifetime unlocks the full book and alert settings via Stripe Checkout.
+Free visitors see the top 5 contracts by absolute funding. Trial (29 SEK / 3 days), Weekly, Pro, or Lifetime unlocks the full book and alert settings via Stripe Payment Links (or Checkout Sessions when secrets are set).
 
 ## Stack
 
@@ -35,6 +35,7 @@ See `.env.example`. None of the secret values belong in git.
 | `STRIPE_SECRET_KEY` | Yes (to take payment) | Stripe secret / restricted key |
 | `STRIPE_WEBHOOK_SECRET` | Yes (to unlock after pay) | Webhook signing secret |
 | `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY` | Recommended | Publishable key (Checkout is server-redirect; kept for Dashboard parity) |
+| `STRIPE_PRICE_TRIAL` | Recommended | `price_1UC3gNBEo0YzuylwRWwf8403` (29 SEK / 3 days, one-time) |
 | `STRIPE_PRICE_WEEKLY` | Yes | `price_1UBzVMBEo0YzuylwICEff8gs` (99 SEK / week) |
 | `STRIPE_PRICE_PRO` | Yes | `price_1UBzVMBEo0YzuylwtyurR6vE` (399 SEK / month) |
 | `STRIPE_PRICE_LIFETIME` | Yes | `price_1UBzVMBEo0YzuylwxIQuqmoo` (1,990 SEK one-time) |
@@ -75,9 +76,15 @@ Set `TURSO_DATABASE_URL` and `TURSO_AUTH_TOKEN`. Access codes themselves are HMA
 
 ## Stripe Checkout
 
-`POST /api/checkout` with `{ "plan": "weekly" | "pro" | "lifetime" }` creates a Checkout Session and returns `{ url }`. The landing CTAs do this and redirect.
+Landing CTAs use live Stripe Payment Links (no `STRIPE_SECRET_KEY` required):
 
-Fallback Payment Links can stay in the Stripe Dashboard if Checkout is blocked, but this app implements Checkout Sessions as the in-app path.
+- Trial: `https://buy.stripe.com/7sYdR851T8J0eSYanb8og0p` (29 SEK / 3 days)
+- Weekly: `https://buy.stripe.com/9B6eVc2TLaR85io9j78og0n` (99 SEK / week)
+- Pro: `https://buy.stripe.com/dRm5kC9i9aR8fX22UJ8og0o` (399 SEK / month)
+
+Set each Payment Link’s after-completion URL to `https://YOUR_DOMAIN/?paid=trial` (or `weekly` / `pro`) so the site can show the post-checkout message. `/success?paid=trial` works the same way.
+
+`POST /api/checkout` with `{ "plan": "trial" | "weekly" | "pro" | "lifetime" }` still creates a Checkout Session when Stripe secrets are configured.
 
 ## Telegram bot (optional)
 

@@ -4,11 +4,20 @@ export const FREE_RATE_LIMIT = 5;
 export const ACCESS_COOKIE = "fa_access";
 export const DEFAULT_ALERT_THRESHOLD_PCT = 0.05;
 
-/** Live Stripe Payment Links (AI Commerce OS). Primary Weekly/Pro CTAs — no STRIPE_SECRET_KEY required. */
+/** Live Stripe Payment Links (AI Commerce OS). CTAs work without STRIPE_SECRET_KEY. */
 export const PAYMENT_LINKS: Partial<Record<PlanId, string>> = {
+  trial: "https://buy.stripe.com/7sYdR851T8J0eSYanb8og0p",
   weekly: "https://buy.stripe.com/9B6eVc2TLaR85io9j78og0n",
   pro: "https://buy.stripe.com/dRm5kC9i9aR8fX22UJ8og0o",
   // lifetime payment link pending approval — omit until live
+};
+
+/** Known live price IDs. Env vars override; fallbacks keep Payment Link webhooks mappable. */
+export const FALLBACK_PRICE_IDS: Record<PlanId, string> = {
+  trial: "price_1UC3gNBEo0YzuylwRWwf8403",
+  weekly: "price_1UBzVMBEo0YzuylwICEff8gs",
+  pro: "price_1UBzVMBEo0YzuylwtyurR6vE",
+  lifetime: "price_1UBzVMBEo0YzuylwxIQuqmoo",
 };
 
 export const BILLING_EMAIL = "billing@nyttolabs.com";
@@ -33,8 +42,26 @@ export const PLANS: Record<
     features: string[];
     mode: "subscription" | "payment";
     highlighted?: boolean;
+    ctaLabel: string;
   }
 > = {
+  trial: {
+    id: "trial",
+    name: "Trial",
+    priceLabel: "29 SEK",
+    amountSek: 29,
+    cadence: "3 days",
+    blurb: "Try the full radar cheaply. Then upgrade to Weekly if the book is useful.",
+    features: [
+      "Full funding radar for 3 days",
+      "Same book as Weekly — all coins",
+      "No custody, no auto-trade",
+      "Tips only — not financial advice",
+    ],
+    mode: "payment",
+    highlighted: true,
+    ctaLabel: "Start 3-day trial — 29 SEK",
+  },
   weekly: {
     id: "weekly",
     name: "Weekly",
@@ -49,6 +76,7 @@ export const PLANS: Record<
       "Access code after checkout",
     ],
     mode: "subscription",
+    ctaLabel: "Unlock Weekly",
   },
   pro: {
     id: "pro",
@@ -64,7 +92,7 @@ export const PLANS: Record<
       "Priority if we add venues",
     ],
     mode: "subscription",
-    highlighted: true,
+    ctaLabel: "Unlock Pro",
   },
   lifetime: {
     id: "lifetime",
@@ -80,27 +108,35 @@ export const PLANS: Record<
       "Same informational tool — no trading",
     ],
     mode: "payment",
+    ctaLabel: "Unlock Lifetime",
   },
 };
 
+export const SECONDARY_PLAN_IDS: PlanId[] = ["weekly", "pro", "lifetime"];
+
 export function priceIdForPlan(plan: PlanId): string | null {
   const map: Record<PlanId, string | undefined> = {
+    trial: process.env.STRIPE_PRICE_TRIAL,
     weekly: process.env.STRIPE_PRICE_WEEKLY,
     pro: process.env.STRIPE_PRICE_PRO,
     lifetime: process.env.STRIPE_PRICE_LIFETIME,
   };
-  return map[plan] || null;
+  return map[plan] || FALLBACK_PRICE_IDS[plan] || null;
 }
 
 export function planFromPriceId(priceId: string | null | undefined): PlanId | null {
   if (!priceId) return null;
   const pairs: Array<[PlanId, string | undefined]> = [
+    ["trial", process.env.STRIPE_PRICE_TRIAL],
     ["weekly", process.env.STRIPE_PRICE_WEEKLY],
     ["pro", process.env.STRIPE_PRICE_PRO],
     ["lifetime", process.env.STRIPE_PRICE_LIFETIME],
   ];
   for (const [plan, id] of pairs) {
     if (id && id === priceId) return plan;
+  }
+  for (const [plan, id] of Object.entries(FALLBACK_PRICE_IDS) as Array<[PlanId, string]>) {
+    if (id === priceId) return plan;
   }
   return null;
 }

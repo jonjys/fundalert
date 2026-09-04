@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { lifetimeMailto, PAYMENT_LINKS, PLANS } from "@/lib/config";
+import { lifetimeMailto, PAYMENT_LINKS, PLANS, SECONDARY_PLAN_IDS } from "@/lib/config";
 import type { PlanId } from "@/lib/types";
 
 const ctaClass = (highlighted: boolean | undefined, extra = "") =>
@@ -11,9 +11,54 @@ const ctaClass = (highlighted: boolean | undefined, extra = "") =>
       : "bg-white/10 text-white hover:bg-white/16"
   } ${extra}`;
 
+function PlanCta({
+  id,
+  highlighted,
+  stripeReady,
+  busy,
+  onLifetime,
+}: {
+  id: PlanId;
+  highlighted?: boolean;
+  stripeReady: boolean;
+  busy: boolean;
+  onLifetime: () => void;
+}) {
+  const plan = PLANS[id];
+  const paymentHref = PAYMENT_LINKS[id];
+  if (paymentHref) {
+    return (
+      <a href={paymentHref} className={ctaClass(highlighted)}>
+        {plan.ctaLabel}
+      </a>
+    );
+  }
+  if (id === "lifetime" && stripeReady) {
+    return (
+      <button
+        type="button"
+        disabled={busy}
+        onClick={onLifetime}
+        className={ctaClass(highlighted, "disabled:cursor-not-allowed disabled:opacity-50")}
+      >
+        {busy ? "Redirecting…" : plan.ctaLabel}
+      </button>
+    );
+  }
+  if (id === "lifetime") {
+    return (
+      <a href={lifetimeMailto()} className={ctaClass(highlighted)}>
+        Email for Lifetime
+      </a>
+    );
+  }
+  return null;
+}
+
 export function Pricing({ stripeReady }: { stripeReady: boolean }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const trial = PLANS.trial;
 
   async function checkoutLifetime() {
     setError(null);
@@ -39,31 +84,61 @@ export function Pricing({ stripeReady }: { stripeReady: boolean }) {
     <section id="pricing" className="scroll-mt-24">
       <div className="mb-8 max-w-2xl">
         <p className="text-xs uppercase tracking-[0.22em] text-lime/80">Self-serve</p>
-        <h2 className="mt-2 text-3xl font-semibold tracking-tight">Paywall. Then the full book.</h2>
+        <h2 className="mt-2 text-3xl font-semibold tracking-tight">
+          Try the full radar. Then pick a cycle.
+        </h2>
         <p className="mt-3 text-white/60">
-          Weekly and Pro check out on Stripe immediately (99 SEK / 399 SEK). Lifetime is
-          1,990 SEK one-time — email billing if the live link is not up yet. We never hold
-          your coins.
+          Start with a 3-day trial (29 SEK) for the full book. Weekly (99 SEK) and Pro
+          (399 SEK) stay available. Lifetime is 1,990 SEK one-time — email billing if the
+          live link is not up yet. Radar and tips only: no custody, no auto-trade, not
+          financial advice.
         </p>
       </div>
+
+      <article className="mb-4 flex flex-col rounded-2xl border border-lime/50 bg-lime/[0.07] p-6 shadow-[0_0_80px_rgba(200,255,61,0.08)] md:flex-row md:items-end md:justify-between md:gap-10">
+        <div className="max-w-xl">
+          <div className="flex items-baseline justify-between gap-3 md:justify-start md:gap-4">
+            <h3 className="text-2xl font-semibold">{trial.name}</h3>
+            <span className="text-[11px] uppercase tracking-wider text-lime">Start here</span>
+          </div>
+          <p className="mt-3 flex items-end gap-2">
+            <span className="text-4xl font-semibold">{trial.priceLabel}</span>
+            <span className="pb-1 text-sm text-white/45">3 days · 29 SEK</span>
+          </p>
+          <p className="mt-2 text-sm text-white/70">{trial.blurb}</p>
+          <ul className="mt-4 grid gap-2 text-sm text-white/75 sm:grid-cols-2">
+            {trial.features.map((feature) => (
+              <li key={feature} className="flex gap-2">
+                <span className="text-lime">▸</span>
+                {feature}
+              </li>
+            ))}
+          </ul>
+        </div>
+        <div className="mt-6 flex w-full flex-col md:mt-0 md:w-auto md:min-w-[240px]">
+          <PlanCta
+            id="trial"
+            highlighted
+            stripeReady={stripeReady}
+            busy={busy}
+            onLifetime={checkoutLifetime}
+          />
+          <p className="mt-3 text-center text-xs leading-5 text-white/45 md:text-left">
+            One-time. Upgrade to Weekly when you want the next cycle.
+          </p>
+        </div>
+      </article>
+
       <div className="grid gap-4 md:grid-cols-3">
-        {(Object.keys(PLANS) as PlanId[]).map((id) => {
+        {SECONDARY_PLAN_IDS.map((id) => {
           const plan = PLANS[id];
-          const paymentHref = PAYMENT_LINKS[id];
           return (
             <article
               key={id}
-              className={`flex flex-col rounded-2xl border p-5 ${
-                plan.highlighted
-                  ? "border-lime/50 bg-lime/[0.07] shadow-[0_0_80px_rgba(200,255,61,0.08)]"
-                  : "border-white/10 bg-white/[0.03]"
-              }`}
+              className="flex flex-col rounded-2xl border border-white/10 bg-white/[0.03] p-5"
             >
               <div className="flex items-baseline justify-between">
                 <h3 className="text-lg font-semibold">{plan.name}</h3>
-                {plan.highlighted && (
-                  <span className="text-[11px] uppercase tracking-wider text-lime">Most used</span>
-                )}
               </div>
               <p className="mt-3 flex items-end gap-2">
                 <span className="text-3xl font-semibold">{plan.priceLabel}</span>
@@ -78,24 +153,13 @@ export function Pricing({ stripeReady }: { stripeReady: boolean }) {
                   </li>
                 ))}
               </ul>
-              {paymentHref ? (
-                <a href={paymentHref} className={ctaClass(plan.highlighted)}>
-                  Unlock {plan.name}
-                </a>
-              ) : id === "lifetime" && stripeReady ? (
-                <button
-                  type="button"
-                  disabled={busy}
-                  onClick={checkoutLifetime}
-                  className={ctaClass(plan.highlighted, "disabled:cursor-not-allowed disabled:opacity-50")}
-                >
-                  {busy ? "Redirecting…" : "Unlock Lifetime"}
-                </button>
-              ) : id === "lifetime" ? (
-                <a href={lifetimeMailto()} className={ctaClass(plan.highlighted)}>
-                  Email for Lifetime
-                </a>
-              ) : null}
+              <PlanCta
+                id={id}
+                highlighted={false}
+                stripeReady={stripeReady}
+                busy={busy}
+                onLifetime={checkoutLifetime}
+              />
             </article>
           );
         })}

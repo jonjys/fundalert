@@ -9,6 +9,7 @@ import type { Entitlement, PlanId } from "./types";
 function expiryForPlan(plan: PlanId, subscriptionPeriodEnd: number | null): number | null {
   if (plan === "lifetime") return null;
   if (subscriptionPeriodEnd && subscriptionPeriodEnd > Date.now()) return subscriptionPeriodEnd;
+  if (plan === "trial") return Date.now() + 3 * 24 * 60 * 60 * 1000;
   if (plan === "weekly") return Date.now() + 7 * 24 * 60 * 60 * 1000;
   return Date.now() + 32 * 24 * 60 * 60 * 1000;
 }

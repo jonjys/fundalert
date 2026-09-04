@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { appUrl, isStripeConfigured, PLANS, priceIdForPlan } from "@/lib/config";
 import { getStripe, integrationIdentifier } from "@/lib/stripe";
-import type { PlanId } from "@/lib/types";
+import { isPlanId, type PlanId } from "@/lib/types";
 import type Stripe from "stripe";
 
 export const dynamic = "force-dynamic";
@@ -20,14 +20,14 @@ export async function POST(request: Request) {
   let plan: PlanId | null = null;
   try {
     const body = (await request.json()) as { plan?: string };
-    if (body.plan === "weekly" || body.plan === "pro" || body.plan === "lifetime") {
+    if (isPlanId(body.plan)) {
       plan = body.plan;
     }
   } catch {
     plan = null;
   }
   if (!plan) {
-    return NextResponse.json({ error: "Choose weekly, pro, or lifetime." }, { status: 400 });
+    return NextResponse.json({ error: "Choose trial, weekly, pro, or lifetime." }, { status: 400 });
   }
 
   const price = priceIdForPlan(plan);

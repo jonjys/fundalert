@@ -18,7 +18,7 @@ export default async function RadarPage() {
           <p className="mt-2 max-w-2xl text-sm text-white/60">
             {access.ok
               ? `Unlocked (${access.plan}). Refresh ~45s. Informational market data only.`
-              : "Free preview is top 5 by |funding|. Unlock Weekly, Pro, or Lifetime for the full book."}
+              : "Free preview is top 5 by |funding|. Unlock Trial (3 days · 29 SEK), Weekly, Pro, or Lifetime for the full book."}
           </p>
         </div>
         {!access.ok && (
