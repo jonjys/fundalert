@@ -132,12 +132,20 @@ export function TradeCards({
           </p>
         </div>
         {locked && (
-          <a
-            href={PAYMENT_LINKS.trial ?? "/#pricing"}
-            className="rounded-xl bg-lime px-4 py-2.5 text-sm font-semibold text-black"
-          >
-            Trial 29 SEK / 3 days
-          </a>
+          <div className="flex flex-wrap gap-2">
+            <a
+              href={PAYMENT_LINKS.trial ?? "/#pricing"}
+              className="rounded-xl bg-lime px-4 py-2.5 text-sm font-semibold text-black"
+            >
+              Trial 29 SEK / 3 days
+            </a>
+            <a
+              href={PAYMENT_LINKS.weekly ?? "/#pricing"}
+              className="rounded-xl border border-white/15 px-4 py-2.5 text-sm text-white"
+            >
+              Weekly 99 SEK
+            </a>
+          </div>
         )}
       </div>
 

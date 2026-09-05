@@ -1,5 +1,5 @@
-import Link from "next/link";
 import { AlertsForm } from "@/components/alerts-form";
+import { HeroCtas } from "@/components/hero-ctas";
 import { getAccessFromCookies, verifyToken } from "@/lib/access";
 import { DEFAULT_ALERT_THRESHOLD_PCT } from "@/lib/config";
 import { getEntitlementBySession } from "@/lib/store";
@@ -17,12 +17,9 @@ export default async function AlertsPage() {
           Private trade-card pings are for paying users. Unlock Trial, Weekly, Pro, or
           Lifetime, then paste your Telegram chat id.
         </p>
-        <Link
-          href="/#pricing"
-          className="mt-6 inline-block rounded-xl bg-lime px-4 py-3 text-sm font-semibold text-black"
-        >
-          See pricing
-        </Link>
+        <div className="mt-6">
+          <HeroCtas />
+        </div>
       </main>
     );
   }

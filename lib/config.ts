@@ -43,6 +43,8 @@ export const CHANNEL_CARD_LIMIT = 3;
 export const TELEGRAM_CARD_LIMIT = 4;
 export const CARD_DISCLAIMER =
   "Informational tip only. Not financial advice. You execute manually. No custody, no auto-orders.";
+export const TELEGRAM_BOT_USERNAME = "F_fundalert_Bot";
+export const TELEGRAM_BOT_URL = "https://t.me/F_fundalert_Bot";
 export const PAPER_RULE =
   "Simulated. A card is issued when |funding| ≥ 0.05%. After 8h we re-read the same venue+contract. Win = same-sign carry still above the collapse level. Lose = rate flipped past ±0.01%. Flat = |rate| collapsed. Expired = venue missing at settle. Paper P&L ≈ size% × |issued funding| × (8h / interval) as % of equity — ignores mark-price, fees, and actual funding prints.";
 
@@ -100,7 +102,7 @@ export const PLANS: Record<
       "Access code after checkout",
     ],
     mode: "subscription",
-    ctaLabel: "Unlock Weekly",
+    ctaLabel: "Weekly — 99 SEK",
   },
   pro: {
     id: "pro",

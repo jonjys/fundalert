@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { HeroCtas } from "@/components/hero-ctas";
 import { PaperTrack } from "@/components/paper-track";
 import { RatesTable } from "@/components/rates-table";
 import { TradeCards } from "@/components/trade-cards";
@@ -31,14 +32,7 @@ export default async function RadarPage() {
           >
             Signals
           </Link>
-          {!access.ok && (
-            <Link
-              href="/#pricing"
-              className="rounded-xl bg-lime px-4 py-2.5 text-sm font-semibold text-black"
-            >
-              Unlock full radar
-            </Link>
-          )}
+          {!access.ok && <HeroCtas compact />}
         </div>
       </div>
       <TradeCards

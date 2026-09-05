@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { PAYMENT_LINKS } from "@/lib/config";
 import { countdown, exchangeLabel, formatPct, formatUsd, fundingTone } from "@/lib/format";
 import type { RatesPayload } from "@/lib/types";
 
@@ -79,8 +80,8 @@ export function RatesTable({
       {locked && (
         <div className="border-b border-white/10 bg-white/[0.02] px-4 py-3 text-sm text-white/70">
           Free view is the top {data.freeLimit} by absolute funding.{" "}
-          <a href="/#pricing" className="text-lime hover:underline">
-            Try 3 days — 29 SEK
+          <a href={PAYMENT_LINKS.trial ?? "/#pricing"} className="text-lime hover:underline">
+            Trial 29 SEK / 3 days
           </a>
           .
         </div>

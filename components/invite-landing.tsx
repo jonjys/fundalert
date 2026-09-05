@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect } from "react";
+import { PAYMENT_LINKS } from "@/lib/config";
 
 export function InviteLanding({
   code,
@@ -28,12 +29,20 @@ export function InviteLanding({
           cookie is still saved on this browser.
         </p>
       )}
-      <a
-        href={trialHref}
-        className="inline-flex rounded-xl bg-lime px-5 py-3 text-sm font-semibold text-black"
-      >
-        Start 3-day trial — 29 SEK
-      </a>
+      <div className="flex flex-wrap gap-3">
+        <a
+          href={trialHref}
+          className="inline-flex rounded-xl bg-lime px-5 py-3 text-sm font-semibold text-black"
+        >
+          Trial 29 SEK / 3 days
+        </a>
+        <a
+          href={PAYMENT_LINKS.weekly ?? "/#pricing"}
+          className="inline-flex rounded-xl border border-white/15 px-5 py-3 text-sm text-white"
+        >
+          Weekly 99 SEK
+        </a>
+      </div>
     </div>
   );
 }

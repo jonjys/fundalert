@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import { appUrl } from "@/lib/config";
+import { appUrl, PAYMENT_LINKS, TELEGRAM_BOT_USERNAME } from "@/lib/config";
 import { setTelegramWatchlistByChatId } from "@/lib/store";
 
 function commandOf(text: string): string {
@@ -25,7 +25,8 @@ export async function POST(req: NextRequest) {
   let reply = "Fundalert bot is online ✅";
 
   if (command === "/start") {
-    reply = `👋 Welcome to Fundalert.\n\nTelegram trade cards when funding goes extreme.\n${origin}/signals\n\nCommands: /alerts /id /alert BNCUSDT`;
+    const trial = PAYMENT_LINKS.trial ?? `${origin}/#pricing`;
+    reply = `👋 Fundalert — funding-carry trade cards. You execute.\n\nTrial 29 SEK / 3 days:\n${trial}\n\nTeasers: ${origin}/signals\nBot: @${TELEGRAM_BOT_USERNAME}\n\nCommands: /alerts /id /alert BNCUSDT`;
   }
   if (command === "/alerts") {
     reply = `🔔 Fundalert Alerts\n\nYour Telegram Chat ID:\n${chatId}\n\nOpen:\n${origin}/alerts`;

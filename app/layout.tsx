@@ -3,6 +3,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { DisclaimerBanner } from "@/components/disclaimer-banner";
 import { Footer } from "@/components/footer";
 import { Header } from "@/components/header";
+import { StickyTrialBar } from "@/components/sticky-trial-bar";
 import { getAccessFromCookies } from "@/lib/access";
 import "./globals.css";
 
@@ -18,11 +19,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Fundalert — Telegram trade cards when funding goes extreme",
+    default: "Fundalert — funding-carry trade cards you execute",
     template: "%s · Fundalert",
   },
   description:
-    "Telegram trade cards when perpetual funding goes extreme. Bias, size, timing, invalidation. Informational only — not financial advice. No custody, no auto-trading.",
+    "Actionable funding-carry trade cards when perp funding goes extreme. Manual execution only. Trial 29 SEK / 3 days. No custody, no auto-trading.",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {
@@ -32,11 +33,12 @@ export default async function RootLayout({ children }: LayoutProps<"/">) {
       lang="en"
       className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
     >
-      <body className="grid-bg min-h-full flex flex-col">
+      <body className={`grid-bg min-h-full flex flex-col ${access.ok ? "" : "pb-20 md:pb-0"}`}>
         <DisclaimerBanner />
         <Header access={access} />
         <div className="flex flex-1 flex-col">{children}</div>
         <Footer />
+        {!access.ok && <StickyTrialBar />}
       </body>
     </html>
   );

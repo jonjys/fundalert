@@ -1,10 +1,13 @@
 import Link from "next/link";
+import { GrowthLoop } from "@/components/growth-loop";
+import { HeroCtas } from "@/components/hero-ctas";
 import { PaidReturn } from "@/components/paid-return-loader";
 import { PaperTrack } from "@/components/paper-track";
 import { Pricing } from "@/components/pricing";
 import { RatesTable } from "@/components/rates-table";
 import { TradeCards } from "@/components/trade-cards";
-import { isStripeConfigured, PAYMENT_LINKS } from "@/lib/config";
+import { buildTradeCards } from "@/lib/cards";
+import { CARD_THRESHOLD_PCT, isStripeConfigured } from "@/lib/config";
 import { getPaperTrackSafe } from "@/lib/paper";
 import { getRates } from "@/lib/rates";
 import { isPlanId } from "@/lib/types";
@@ -20,80 +23,72 @@ export default async function HomePage({
   const stripeReady = isStripeConfigured();
   const { paid, session_id: sessionId } = await searchParams;
   const paidPlan = isPlanId(paid) ? paid : null;
+  const extremeCount = buildTradeCards(rates.rates, {
+    thresholdPct: CARD_THRESHOLD_PCT,
+    max: 8,
+  }).length;
 
   return (
-    <main className="relative mx-auto w-full max-w-6xl px-4 pb-20 pt-12">
+    <main className="relative mx-auto w-full max-w-6xl px-4 pb-20 pt-6 md:pt-12">
       <div className="scanline pointer-events-none absolute inset-0 opacity-40" />
       {(paidPlan || sessionId) && (
         <div className="relative">
           <PaidReturn plan={paidPlan} sessionId={sessionId ?? null} />
         </div>
       )}
-      <section className="relative grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
+      <section className="relative grid gap-8 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">
         <div>
           <p className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-black/30 px-3 py-1 text-[11px] uppercase tracking-[0.2em] text-white/60">
             <span className="pulse-dot" />
-            Telegram trade cards
+            Funding-carry desk
           </p>
-          <h1 className="mt-5 max-w-xl text-4xl font-semibold tracking-tight md:text-6xl md:leading-[1.05]">
-            Telegram trade cards when funding goes extreme.
+          <h1 className="mt-4 max-w-xl text-[1.85rem] font-semibold tracking-tight sm:text-4xl md:text-6xl md:leading-[1.05]">
+            Actionable funding-carry trade cards. You execute.
           </h1>
-          <p className="mt-5 max-w-xl text-base leading-7 text-white/65 md:text-lg">
-            Clear action, timing, and risk — not a raw funding table. When |funding|
-            spikes we send a desk tip: long perps if funding is very negative, short if
-            very positive. Trial is 29 SEK / 3 days. You execute manually. We never
-            hold funds or place orders.
+          <p className="mt-4 max-w-xl text-sm leading-6 text-white/70 md:text-lg md:leading-7">
+            Extreme funding → a card (bias, size, invalidation) → you trade it
+            manually → we paper-track the last 7 days. No custody. No auto-orders.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
-            <a
-              href={PAYMENT_LINKS.trial ?? "#pricing"}
-              className="rounded-xl bg-lime px-5 py-3 text-sm font-semibold text-black"
-            >
-              Try 3 days — 29 SEK
-            </a>
-            <Link
-              href="/signals"
-              className="rounded-xl border border-white/15 px-5 py-3 text-sm text-white"
-            >
-              See teaser cards
-            </Link>
+          <p className="mt-3 max-w-xl text-sm leading-6 text-lime/85">
+            {extremeCount > 0
+              ? "Desk is posting extremes now. Teasers are free; private Telegram cards sit behind Trial."
+              : "Desk is watching the book. Trial unlocks private Telegram cards when funding spikes."}
+          </p>
+          <div className="mt-6">
+            <HeroCtas />
           </div>
-          <dl className="mt-10 grid max-w-lg grid-cols-3 gap-4 text-sm">
-            <div>
-              <dt className="text-white/40">Custody</dt>
-              <dd className="mt-1 font-medium">None</dd>
-            </div>
-            <div>
-              <dt className="text-white/40">Auto-trade</dt>
-              <dd className="mt-1 font-medium">Never</dd>
-            </div>
-            <div>
-              <dt className="text-white/40">Advice</dt>
-              <dd className="mt-1 font-medium">Not this</dd>
-            </div>
-          </dl>
+          <p className="mt-3 text-xs text-white/45">
+            Trial 29 SEK / 3 days · then Weekly 99 SEK for private Telegram cards ·{" "}
+            <Link href="/signals" className="text-white/70 underline-offset-2 hover:underline">
+              see teasers
+            </Link>
+          </p>
         </div>
         <div className="rounded-2xl border border-white/10 bg-black/35 p-5">
-          <p className="text-xs uppercase tracking-[0.18em] text-white/45">How a card works</p>
+          <p className="text-xs uppercase tracking-[0.18em] text-white/45">How it pays</p>
           <ol className="mt-4 space-y-4 text-sm text-white/75">
             <li>
-              <span className="mono text-lime">01</span> Public REST from exchanges — no
-              exchange API keys.
+              <span className="mono text-lime">01</span> Extreme perp funding prints on
+              public REST — no exchange API keys.
             </li>
             <li>
-              <span className="mono text-lime">02</span> Extreme |funding| becomes a tip:
-              bias, 5–15% size, entry window, invalidation, 24h carry.
+              <span className="mono text-lime">02</span> You get a card: long if funding is
+              very negative, short if very positive. 5–15% size, entry window, invalidation.
             </li>
             <li>
-              <span className="mono text-lime">03</span> Telegram private alerts + optional
-              public channel. Trial first. You still click the order.
+              <span className="mono text-lime">03</span> You click the order. We paper-mark
+              the same contract after 8h so the track record stays honest.
             </li>
           </ol>
         </div>
       </section>
 
-      <section className="relative mt-14">
+      <section className="relative mt-10">
         <TradeCards initial={rates} endpoint="/api/rates?public=1" locked teaser />
+      </section>
+
+      <section className="relative mt-10">
+        <GrowthLoop />
       </section>
 
       <section className="relative mt-10">

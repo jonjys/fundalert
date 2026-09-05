@@ -88,10 +88,9 @@ export function Pricing({ stripeReady }: { stripeReady: boolean }) {
           Try the trade cards. Then pick a cycle.
         </h2>
         <p className="mt-3 text-white/60">
-          Start with a 3-day trial (29 SEK) for the full book. Weekly (99 SEK) and Pro
-          (399 SEK) stay available. Lifetime is 1,990 SEK one-time — email billing if the
-          live link is not up yet. Radar and tips only: no custody, no auto-trade, not
-          financial advice.
+          Start with Trial (29 SEK / 3 days) for private cards. Weekly (99 SEK) is the
+          next cycle. Pro (399 SEK) and Lifetime (1,990 SEK) stay available. Tips only:
+          no custody, no auto-trade, not financial advice.
         </p>
       </div>
 
