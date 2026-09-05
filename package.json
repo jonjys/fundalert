@@ -8,7 +8,7 @@
     "start": "next start",
     "lint": "eslint",
     "typecheck": "tsc --noEmit",
-    "test": "npx tsx lib/cards-math.test.ts"
+    "test": "npx tsx lib/cards-math.test.ts && npx tsx lib/conversion.test.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",

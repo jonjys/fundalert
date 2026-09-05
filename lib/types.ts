@@ -70,6 +70,7 @@ export type AccessState = {
   email: string | null;
   expiresAt: number | null;
   token: string | null;
+  referralCode: string | null;
 };
 
 export type TokenPayload = {

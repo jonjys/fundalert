@@ -2,7 +2,8 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { BILLING_EMAIL, PLANS } from "@/lib/config";
+import { SharePack } from "@/components/share-pack";
+import { appUrl, BILLING_EMAIL, PLANS } from "@/lib/config";
 import type { PlanId } from "@/lib/types";
 
 type ClaimOk = {
@@ -219,38 +220,49 @@ export function PaidReturnNotice({
       {status === "ready" && claim && (
         <div className="mt-5 space-y-4">
           <p className="text-sm leading-6 text-white/70">
-            Choose how to continue. This browser is not unlocked until you pick{" "}
-            <span className="text-white">Use Fundalert now</span>.
+            This browser stays locked until you pick{" "}
+            <span className="text-white">Use Fundalert now</span>. Gift and Invite are
+            here on purpose — send a seat if this checkout is not for you.
           </p>
-          <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
+          <div className="grid gap-3 md:grid-cols-3">
             <button
               type="button"
               onClick={() => void activate()}
               disabled={busy !== null}
-              className="rounded-xl bg-lime px-4 py-2.5 text-sm font-semibold text-black disabled:opacity-50"
+              className="rounded-2xl bg-lime px-4 py-4 text-left disabled:opacity-50"
             >
-              {busy === "activate" ? "Activating…" : "Use Fundalert now"}
+              <p className="text-sm font-semibold text-black">
+                {busy === "activate" ? "Activating…" : "Use Fundalert now"}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-black/70">
+                Unlock this browser and open the private cards.
+              </p>
             </button>
             <button
               type="button"
               onClick={() => void giftAccess()}
               disabled={busy !== null}
-              className="rounded-xl border border-white/15 px-4 py-2.5 text-sm text-white disabled:opacity-50"
+              className="rounded-2xl border border-lime/40 bg-black/40 px-4 py-4 text-left disabled:opacity-50"
             >
-              {busy === "gift" ? "Creating…" : "Gift access"}
+              <p className="text-sm font-semibold text-white">
+                {busy === "gift" ? "Creating…" : "Gift access"}
+              </p>
+              <p className="mt-1 text-xs leading-5 text-white/60">
+                One 48h single-use FA- code. Friend redeems on /unlock.
+              </p>
             </button>
             <button
               type="button"
               onClick={openInvite}
               disabled={busy !== null || !claim.inviteCode}
-              className="rounded-xl border border-white/15 px-4 py-2.5 text-sm text-white disabled:opacity-50"
+              className="rounded-2xl border border-lime/40 bg-black/40 px-4 py-4 text-left disabled:opacity-50"
             >
-              Invite & earn
+              <p className="text-sm font-semibold text-white">Invite & earn</p>
+              <p className="mt-1 text-xs leading-5 text-white/60">
+                They get +3 days on Trial. You get +7 days when they pay.
+              </p>
             </button>
           </div>
-          <p className="text-xs leading-5 text-white/45">
-            Activate on this device · Gift / Share code (48h, single-use) · Invite user
-          </p>
 
           {gift && (
             <div className="rounded-xl border border-white/10 bg-black/40 p-4">
@@ -293,7 +305,14 @@ export function PaidReturnNotice({
               >
                 {inviteCopied ? "Copied" : "Copy invite link"}
               </button>
+              <div className="mt-4">
+                <SharePack origin={appUrl()} inviteCode={claim.inviteCode} heading="Invite snippet" />
+              </div>
             </div>
+          )}
+
+          {!inviteOpen && (
+            <SharePack origin={appUrl()} inviteCode={claim.inviteCode} heading="Share Trial / invite" />
           )}
         </div>
       )}

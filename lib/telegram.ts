@@ -3,6 +3,7 @@ import {
   CARD_SIZE_MAX_PCT,
   CHANNEL_CARD_LIMIT,
   PAYMENT_LINKS,
+  TELEGRAM_BOT_USERNAME,
   TELEGRAM_CARD_LIMIT,
 } from "./config";
 import { exchangeLabel, formatPct } from "./format";
@@ -108,11 +109,13 @@ export function formatAlertMessage(input: {
 }
 
 export function formatChannelMessage(input: { cards: TradeCard[]; origin: string }): string {
-  const trial = PAYMENT_LINKS.trial ?? `${input.origin}/#pricing`;
+  const origin = input.origin.replace(/\/$/, "");
+  const trial = PAYMENT_LINKS.trial ?? `${origin}/#pricing`;
+  const weekly = PAYMENT_LINKS.weekly ?? `${origin}/#pricing`;
   const cards = input.cards.slice(0, CHANNEL_CARD_LIMIT);
   const lines = [
-    "<b>⚡ FUNDALERT TRADE CARDS</b>",
-    "Extreme funding — classic carry tips. You execute.",
+    "<b>⚡ FUNDALERT — funding-carry cards</b>",
+    "Desk is posting extremes now. Classic carry tips. You execute.",
     "",
   ];
   for (const [index, card] of cards.entries()) {
@@ -121,9 +124,11 @@ export function formatChannelMessage(input: { cards: TradeCard[]; origin: string
   }
   lines.push(
     "",
-    `<b>Trial 3 days · 29 SEK</b>`,
-    escapeHtml(trial),
-    `${escapeHtml(input.origin)}/signals`,
+    "<b>Unlock private Telegram cards</b>",
+    `<b>Trial 29 SEK / 3 days</b> → ${escapeHtml(trial)}`,
+    `Weekly 99 SEK → ${escapeHtml(weekly)}`,
+    `Teasers: ${escapeHtml(origin)}/signals`,
+    `Bot: @${TELEGRAM_BOT_USERNAME}`,
     "",
     `<i>${escapeHtml(CARD_DISCLAIMER)}</i>`,
   );

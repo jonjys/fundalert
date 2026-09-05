@@ -59,6 +59,7 @@ export async function resolveAccess(token: string | null | undefined): Promise<A
     email: null,
     expiresAt: null,
     token: null,
+    referralCode: null,
   };
   if (!token) return free;
   const payload = verifyToken(token);
@@ -66,11 +67,13 @@ export async function resolveAccess(token: string | null | undefined): Promise<A
 
   let expiresAt = payload.exp;
   let plan: PlanId = payload.plan;
+  let referralCode: string | null = null;
   try {
     const stored = await getEntitlementBySession(payload.sid);
     if (stored) {
       expiresAt = stored.expiresAt;
       plan = stored.plan;
+      referralCode = stored.referralCode;
     }
   } catch {
     // Store is optional for HMAC access.
@@ -83,6 +86,7 @@ export async function resolveAccess(token: string | null | undefined): Promise<A
     email: payload.email,
     expiresAt,
     token,
+    referralCode,
   };
 }
 
