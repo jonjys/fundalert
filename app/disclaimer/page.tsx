@@ -12,8 +12,9 @@ export default function DisclaimerPage() {
       <div className="mt-6 space-y-4 text-sm leading-7 text-white/70">
         <p>
           Fundalert is an informational market-data product. It shows public perpetual
-          futures funding rates from third-party exchanges and can optionally send Telegram
-          messages when a threshold is crossed.
+          futures funding rates from third-party exchanges, turns extreme rows into
+          trade-card tips (bias, suggested size, invalidation), and can optionally send
+          those cards on Telegram when a threshold is crossed.
         </p>
         <p>
           Nothing on this site is financial, investment, tax, or trading advice. Nothing
@@ -25,6 +26,11 @@ export default function DisclaimerPage() {
           Fundalert does not custody crypto or fiat (other than collecting its own software
           fee via Stripe). It does not place orders, run bots, or auto-trade. You are solely
           responsible for any action you take on an exchange.
+        </p>
+        <p>
+          The on-site paper track record is hypothetical and labeled simulated. It marks
+          whether a funding-carry thesis still held after 8 hours. It is not live trading
+          P&L and ignores mark-price moves, fees, and actual funding prints.
         </p>
         <p>
           Data may be delayed, incomplete, geo-blocked, or wrong. Exchanges change endpoints

@@ -2,9 +2,22 @@ import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createClient, type Client } from "@libsql/client";
 import { newReferralCode } from "./codes";
-import type { Entitlement, GiftCode, PlanId } from "./types";
+import type {
+  Confidence,
+  Entitlement,
+  ExchangeId,
+  GiftCode,
+  PaperOutcome,
+  PaperPosition,
+  PlanId,
+  TradeSide,
+} from "./types";
 
-type StoreFile = { entitlements: Entitlement[]; giftCodes: GiftCode[] };
+type StoreFile = {
+  entitlements: Entitlement[];
+  giftCodes: GiftCode[];
+  paperPositions: PaperPosition[];
+};
 
 const FILE_PATH =
   process.env.STORE_PATH ||
@@ -37,9 +50,10 @@ async function readFileStore(): Promise<StoreFile> {
     return {
       entitlements: (parsed.entitlements?? []).map(serialize),
       giftCodes: parsed.giftCodes?? [],
+      paperPositions: (parsed.paperPositions ?? []).map(serializePaper),
     };
   } catch {
-    return { entitlements: [], giftCodes: [] };
+    return { entitlements: [], giftCodes: [], paperPositions: [] };
   }
 }
 
@@ -107,6 +121,27 @@ async function turso(): Promise<Client> {
     try {
       await libsql.execute("CREATE UNIQUE INDEX IF NOT EXISTS entitlements_referral_code ON entitlements(referral_code)");
     } catch {}
+    await libsql.execute(`
+      CREATE TABLE IF NOT EXISTS paper_positions (
+        id TEXT PRIMARY KEY,
+        symbol TEXT NOT NULL,
+        exchange TEXT NOT NULL,
+        side TEXT NOT NULL,
+        funding_rate_pct REAL NOT NULL,
+        interval_hours REAL NOT NULL,
+        size_pct REAL NOT NULL,
+        confidence TEXT NOT NULL,
+        issued_at INTEGER NOT NULL,
+        settle_at INTEGER NOT NULL,
+        settled_at INTEGER,
+        exit_funding_rate_pct REAL,
+        outcome TEXT,
+        pnl_pct REAL
+      )
+    `);
+    try {
+      await libsql.execute("CREATE INDEX IF NOT EXISTS paper_positions_issued ON paper_positions(issued_at)");
+    } catch {}
     libsqlReady = true;
   }
   return libsql;
@@ -141,6 +176,60 @@ function rowToGift(row: Record<string, unknown>): GiftCode {
     plan: row.plan as PlanId, email: String(row.email), expiresAt: Number(row.expires_at),
     createdAt: Number(row.created_at), redeemedAt: row.redeemed_at == null? null : Number(row.redeemed_at),
   };
+}
+
+function isTradeSide(value: unknown): value is TradeSide {
+  return value === "long" || value === "short";
+}
+
+function isConfidence(value: unknown): value is Confidence {
+  return value === "low" || value === "med" || value === "high";
+}
+
+function isPaperOutcome(value: unknown): value is PaperOutcome {
+  return value === "win" || value === "lose" || value === "flat" || value === "expired";
+}
+
+function isExchangeId(value: unknown): value is ExchangeId {
+  return value === "binance" || value === "bybit" || value === "okx";
+}
+
+function serializePaper(row: PaperPosition): PaperPosition {
+  return {
+    id: row.id,
+    symbol: row.symbol,
+    exchange: isExchangeId(row.exchange) ? row.exchange : "binance",
+    side: isTradeSide(row.side) ? row.side : "long",
+    fundingRatePct: Number(row.fundingRatePct),
+    intervalHours: Number(row.intervalHours),
+    sizePct: Number(row.sizePct),
+    confidence: isConfidence(row.confidence) ? row.confidence : "low",
+    issuedAt: Number(row.issuedAt),
+    settleAt: Number(row.settleAt),
+    settledAt: row.settledAt == null ? null : Number(row.settledAt),
+    exitFundingRatePct: row.exitFundingRatePct == null ? null : Number(row.exitFundingRatePct),
+    outcome: isPaperOutcome(row.outcome) ? row.outcome : null,
+    pnlPct: row.pnlPct == null ? null : Number(row.pnlPct),
+  };
+}
+
+function rowToPaper(row: Record<string, unknown>): PaperPosition {
+  return serializePaper({
+    id: String(row.id),
+    symbol: String(row.symbol),
+    exchange: isExchangeId(row.exchange) ? row.exchange : "binance",
+    side: isTradeSide(row.side) ? row.side : "long",
+    fundingRatePct: Number(row.funding_rate_pct),
+    intervalHours: Number(row.interval_hours),
+    sizePct: Number(row.size_pct),
+    confidence: isConfidence(row.confidence) ? row.confidence : "low",
+    issuedAt: Number(row.issued_at),
+    settleAt: Number(row.settle_at),
+    settledAt: row.settled_at == null ? null : Number(row.settled_at),
+    exitFundingRatePct: row.exit_funding_rate_pct == null ? null : Number(row.exit_funding_rate_pct),
+    outcome: isPaperOutcome(row.outcome) ? row.outcome : null,
+    pnlPct: row.pnl_pct == null ? null : Number(row.pnl_pct),
+  });
 }
 
 export async function upsertEntitlement(row: Entitlement): Promise<Entitlement> {
@@ -309,5 +398,102 @@ export async function setTelegramWatchlistByChatId(chatId: string, watchlist: st
     const data = await readFileStore();
     const idx = data.entitlements.findIndex(e => e.telegramChatId === chatId);
     if (idx >= 0) { (data.entitlements[idx] as any).telegramWatchlist = watchlist; await writeFileStore(data); }
+  });
+}
+
+export async function insertPaperPosition(row: PaperPosition): Promise<PaperPosition> {
+  const next = serializePaper(row);
+  if (tursoEnabled()) {
+    const db = await turso();
+    await db.execute({
+      sql: `INSERT INTO paper_positions (id, symbol, exchange, side, funding_rate_pct, interval_hours, size_pct, confidence, issued_at, settle_at, settled_at, exit_funding_rate_pct, outcome, pnl_pct) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?)`,
+      args: [
+        next.id,
+        next.symbol,
+        next.exchange,
+        next.side,
+        next.fundingRatePct,
+        next.intervalHours,
+        next.sizePct,
+        next.confidence,
+        next.issuedAt,
+        next.settleAt,
+        next.settledAt,
+        next.exitFundingRatePct,
+        next.outcome,
+        next.pnlPct,
+      ],
+    });
+    return next;
+  }
+  return enqueue(async () => {
+    const data = await readFileStore();
+    data.paperPositions.push(next);
+    await writeFileStore(data);
+    return next;
+  });
+}
+
+export async function listOpenPaperPositions(): Promise<PaperPosition[]> {
+  if (tursoEnabled()) {
+    const db = await turso();
+    const rs = await db.execute({
+      sql: "SELECT * FROM paper_positions WHERE settled_at IS NULL ORDER BY issued_at DESC",
+      args: [],
+    });
+    return rs.rows.map((row) => rowToPaper(row as Record<string, unknown>));
+  }
+  const data = await readFileStore();
+  return data.paperPositions.filter((row) => row.settledAt == null);
+}
+
+export async function listPaperSince(since: number): Promise<PaperPosition[]> {
+  if (tursoEnabled()) {
+    const db = await turso();
+    const rs = await db.execute({
+      sql: "SELECT * FROM paper_positions WHERE issued_at >= ? ORDER BY issued_at DESC LIMIT 80",
+      args: [since],
+    });
+    return rs.rows.map((row) => rowToPaper(row as Record<string, unknown>));
+  }
+  const data = await readFileStore();
+  return data.paperPositions
+    .filter((row) => row.issuedAt >= since)
+    .sort((a, b) => b.issuedAt - a.issuedAt)
+    .slice(0, 80);
+}
+
+export async function updatePaperSettlement(
+  id: string,
+  fields: {
+    settledAt: number;
+    exitFundingRatePct: number | null;
+    outcome: PaperOutcome;
+    pnlPct: number;
+  },
+): Promise<PaperPosition | null> {
+  if (tursoEnabled()) {
+    const db = await turso();
+    await db.execute({
+      sql: "UPDATE paper_positions SET settled_at =?, exit_funding_rate_pct =?, outcome =?, pnl_pct =? WHERE id =?",
+      args: [fields.settledAt, fields.exitFundingRatePct, fields.outcome, fields.pnlPct, id],
+    });
+    const rs = await db.execute({ sql: "SELECT * FROM paper_positions WHERE id =? LIMIT 1", args: [id] });
+    const row = rs.rows[0] as Record<string, unknown> | undefined;
+    return row ? rowToPaper(row) : null;
+  }
+  return enqueue(async () => {
+    const data = await readFileStore();
+    const idx = data.paperPositions.findIndex((row) => row.id === id);
+    if (idx < 0) return null;
+    data.paperPositions[idx] = {
+      ...data.paperPositions[idx],
+      settledAt: fields.settledAt,
+      exitFundingRatePct: fields.exitFundingRatePct,
+      outcome: fields.outcome,
+      pnlPct: fields.pnlPct,
+    };
+    await writeFileStore(data);
+    return data.paperPositions[idx];
   });
 }

@@ -104,7 +104,7 @@ export function PaidReturnNotice({
       });
       const json = (await res.json()) as ClaimErr;
       if (!res.ok) throw new Error(json.error || "Activate failed");
-      router.push("/radar");
+      router.push("/signals");
       router.refresh();
     } catch (err) {
       setError({

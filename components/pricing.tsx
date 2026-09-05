@@ -85,7 +85,7 @@ export function Pricing({ stripeReady }: { stripeReady: boolean }) {
       <div className="mb-8 max-w-2xl">
         <p className="text-xs uppercase tracking-[0.22em] text-lime/80">Self-serve</p>
         <h2 className="mt-2 text-3xl font-semibold tracking-tight">
-          Try the full radar. Then pick a cycle.
+          Try the trade cards. Then pick a cycle.
         </h2>
         <p className="mt-3 text-white/60">
           Start with a 3-day trial (29 SEK) for the full book. Weekly (99 SEK) and Pro

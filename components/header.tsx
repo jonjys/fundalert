@@ -3,6 +3,7 @@ import { PAYMENT_LINKS } from "@/lib/config";
 import type { AccessState } from "@/lib/types";
 
 const links = [
+  { href: "/signals", label: "Signals" },
   { href: "/radar", label: "Radar" },
   { href: "/alerts", label: "Alerts" },
   { href: "/#pricing", label: "Pricing" },

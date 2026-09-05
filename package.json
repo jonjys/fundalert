@@ -6,7 +6,9 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "npx tsx lib/cards-math.test.ts"
   },
   "dependencies": {
     "@libsql/client": "^0.18.0",

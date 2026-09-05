@@ -25,7 +25,7 @@ export async function POST(req: NextRequest) {
   let reply = "Fundalert bot is online ✅";
 
   if (command === "/start") {
-    reply = `👋 Welcome to Fundalert.\n\n${origin}\n\nCommands: /alerts /id /alert BNCUSDT`;
+    reply = `👋 Welcome to Fundalert.\n\nTelegram trade cards when funding goes extreme.\n${origin}/signals\n\nCommands: /alerts /id /alert BNCUSDT`;
   }
   if (command === "/alerts") {
     reply = `🔔 Fundalert Alerts\n\nYour Telegram Chat ID:\n${chatId}\n\nOpen:\n${origin}/alerts`;

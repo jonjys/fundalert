@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
-import { getAccessFromCookies } from "@/lib/access";
+import { getAccessFromCookies, verifyToken } from "@/lib/access";
+import { buildTradeCards } from "@/lib/cards";
 import { DEFAULT_ALERT_THRESHOLD_PCT } from "@/lib/config";
+import { getRates } from "@/lib/rates";
 import { getEntitlementBySession, updateTelegramSettings } from "@/lib/store";
-import { sendTelegramMessage, telegramConfigured } from "@/lib/telegram";
-import { verifyToken } from "@/lib/access";
+import { formatAlertMessage, sendTelegramMessage, telegramConfigured } from "@/lib/telegram";
 
 export const dynamic = "force-dynamic";
 
@@ -82,9 +83,16 @@ export async function POST(request: Request) {
     if (!chatId) {
       return NextResponse.json({ error: "Paste a Telegram chat id to send a test." }, { status: 400 });
     }
+    const live = await getRates(true);
+    const sample = buildTradeCards(live.rates, { max: 1, includeBelowThreshold: true });
     const test = await sendTelegramMessage(
       chatId,
-      "<b>Fundalert test</b>\nIf you see this, alerts are wired.\n<i>Informational only — not financial advice.</i>",
+      sample.length > 0
+        ? formatAlertMessage({
+            thresholdPct: threshold,
+            cards: sample,
+          })
+        : "<b>Fundalert test</b>\nIf you see this, trade-card alerts are wired.\n<i>Informational tip only. Not financial advice. You execute manually.</i>",
     );
     return NextResponse.json({ ok: true, settings: updated, test });
   }
