@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PaidReturnNotice } from "@/components/paid-return";
+import { PaidReturn } from "@/components/paid-return-loader";
 import { isPlanId } from "@/lib/types";
 
 export const dynamic = "force-dynamic";
@@ -30,7 +30,7 @@ export default async function SuccessPage({
 
   return (
     <main className="mx-auto max-w-xl px-4 py-16">
-      <PaidReturnNotice plan={paidPlan} sessionId={sessionId ?? null} />
+      <PaidReturn plan={paidPlan} sessionId={sessionId ?? null} />
     </main>
   );
 }

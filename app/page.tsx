@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { PaidReturnNotice } from "@/components/paid-return";
+import { PaidReturn } from "@/components/paid-return-loader";
 import { Pricing } from "@/components/pricing";
 import { RatesTable } from "@/components/rates-table";
 import { isStripeConfigured, PAYMENT_LINKS } from "@/lib/config";
@@ -23,7 +23,7 @@ export default async function HomePage({
       <div className="scanline pointer-events-none absolute inset-0 opacity-40" />
       {(paidPlan || sessionId) && (
         <div className="relative">
-          <PaidReturnNotice plan={paidPlan} sessionId={sessionId ?? null} />
+          <PaidReturn plan={paidPlan} sessionId={sessionId ?? null} />
         </div>
       )}
       <section className="relative grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">

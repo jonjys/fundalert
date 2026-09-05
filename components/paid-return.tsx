@@ -34,16 +34,20 @@ function billingMailto(sessionId: string | null, plan: PlanId | null) {
 export function PaidReturnNotice({
   plan,
   sessionId,
+  initialClaim = null,
+  initialError = null,
 }: {
   plan: PlanId | null;
   sessionId: string | null;
+  initialClaim?: ClaimOk | null;
+  initialError?: ClaimErr | null;
 }) {
   const router = useRouter();
   const [status, setStatus] = useState<"claiming" | "ready" | "error" | "idle">(
-    sessionId ? "claiming" : "idle",
+    initialClaim ? "ready" : initialError ? "error" : sessionId ? "claiming" : "idle",
   );
-  const [claim, setClaim] = useState<ClaimOk | null>(null);
-  const [error, setError] = useState<ClaimErr | null>(null);
+  const [claim, setClaim] = useState<ClaimOk | null>(initialClaim);
+  const [error, setError] = useState<ClaimErr | null>(initialError);
   const [busy, setBusy] = useState<"activate" | "gift" | "invite" | null>(null);
   const [gift, setGift] = useState<{ code: string; expiresAt: number } | null>(null);
   const [giftCopied, setGiftCopied] = useState(false);
@@ -51,7 +55,7 @@ export function PaidReturnNotice({
   const [inviteCopied, setInviteCopied] = useState(false);
 
   useEffect(() => {
-    if (!sessionId) return;
+    if (!sessionId || initialClaim || initialError) return;
     let cancelled = false;
     void fetch("/api/access/claim", {
       method: "POST",
@@ -80,7 +84,7 @@ export function PaidReturnNotice({
     return () => {
       cancelled = true;
     };
-  }, [sessionId]);
+  }, [sessionId, initialClaim, initialError]);
 
   const resolvedPlan = claim?.plan ?? plan;
   const inviteUrl = useMemo(() => {
