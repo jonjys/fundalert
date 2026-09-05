@@ -3,9 +3,11 @@ import { GiftAccess } from "@/components/gift-access";
 import { SharePack } from "@/components/share-pack";
 
 export function GrowthLoop({
+  origin,
   inviteCode = null,
   unlocked = false,
 }: {
+  origin: string;
   inviteCode?: string | null;
   unlocked?: boolean;
 }) {
@@ -49,6 +51,7 @@ export function GrowthLoop({
       )}
       <div className="mt-4">
         <SharePack
+          origin={origin}
           inviteCode={inviteCode}
           heading={inviteCode ? "Invite snippet" : "Trial snippet"}
         />

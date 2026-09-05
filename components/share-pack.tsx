@@ -11,29 +11,25 @@ import {
 } from "@/lib/share";
 
 export function SharePack({
+  origin,
   inviteCode = null,
   heading = "Share Trial",
 }: {
+  origin: string;
   inviteCode?: string | null;
   heading?: string;
 }) {
   const [copied, setCopied] = useState(false);
-  const origin = typeof window === "undefined" ? "" : window.location.origin;
 
   const snippet = useMemo(() => {
-    if (!origin) return "";
     return inviteCode
       ? inviteShareSnippet(origin, inviteCode, "copy")
       : trialShareSnippet(origin, "copy");
   }, [inviteCode, origin]);
 
-  const xHref = useMemo(() => {
-    if (!origin) return "#";
-    return twitterShareHref(snippet || trialShareSnippet(origin, "x"));
-  }, [origin, snippet]);
+  const xHref = useMemo(() => twitterShareHref(snippet), [snippet]);
 
   const tgHref = useMemo(() => {
-    if (!origin) return "#";
     const url = inviteCode
       ? inviteShareUrl(origin, inviteCode, "telegram")
       : siteShareUrl(origin, "telegram");
@@ -55,7 +51,7 @@ export function SharePack({
         converted.
       </p>
       <pre className="mt-3 overflow-x-auto whitespace-pre-wrap rounded-lg border border-white/10 bg-black/50 p-3 text-xs leading-5 text-white/75">
-        {snippet || "Share text loads in the browser."}
+        {snippet}
       </pre>
       <div className="mt-3 flex flex-wrap gap-2">
         <button

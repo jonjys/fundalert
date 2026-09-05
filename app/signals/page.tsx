@@ -6,7 +6,7 @@ import { PaperTrack } from "@/components/paper-track";
 import { TradeCards } from "@/components/trade-cards";
 import { getAccessFromCookies } from "@/lib/access";
 import { buildTradeCards } from "@/lib/cards";
-import { CARD_THRESHOLD_PCT } from "@/lib/config";
+import { appUrl, CARD_THRESHOLD_PCT } from "@/lib/config";
 import { getPaperTrackSafe } from "@/lib/paper";
 import { getRates } from "@/lib/rates";
 
@@ -77,7 +77,7 @@ export default async function SignalsPage() {
         locked={!access.ok}
       />
       <div className="mt-10">
-        <GrowthLoop inviteCode={access.referralCode} unlocked={access.ok} />
+        <GrowthLoop origin={appUrl()} inviteCode={access.referralCode} unlocked={access.ok} />
       </div>
       <div className="mt-10">
         <PaperTrack track={track} />

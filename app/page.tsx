@@ -7,7 +7,7 @@ import { Pricing } from "@/components/pricing";
 import { RatesTable } from "@/components/rates-table";
 import { TradeCards } from "@/components/trade-cards";
 import { buildTradeCards } from "@/lib/cards";
-import { CARD_THRESHOLD_PCT, isStripeConfigured } from "@/lib/config";
+import { appUrl, CARD_THRESHOLD_PCT, isStripeConfigured } from "@/lib/config";
 import { getPaperTrackSafe } from "@/lib/paper";
 import { getRates } from "@/lib/rates";
 import { isPlanId } from "@/lib/types";
@@ -88,7 +88,7 @@ export default async function HomePage({
       </section>
 
       <section className="relative mt-10">
-        <GrowthLoop />
+        <GrowthLoop origin={appUrl()} />
       </section>
 
       <section className="relative mt-10">

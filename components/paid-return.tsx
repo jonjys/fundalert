@@ -3,7 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { SharePack } from "@/components/share-pack";
-import { BILLING_EMAIL, PLANS } from "@/lib/config";
+import { appUrl, BILLING_EMAIL, PLANS } from "@/lib/config";
 import type { PlanId } from "@/lib/types";
 
 type ClaimOk = {
@@ -306,13 +306,13 @@ export function PaidReturnNotice({
                 {inviteCopied ? "Copied" : "Copy invite link"}
               </button>
               <div className="mt-4">
-                <SharePack inviteCode={claim.inviteCode} heading="Invite snippet" />
+                <SharePack origin={appUrl()} inviteCode={claim.inviteCode} heading="Invite snippet" />
               </div>
             </div>
           )}
 
           {!inviteOpen && (
-            <SharePack inviteCode={claim.inviteCode} heading="Share Trial / invite" />
+            <SharePack origin={appUrl()} inviteCode={claim.inviteCode} heading="Share Trial / invite" />
           )}
         </div>
       )}
