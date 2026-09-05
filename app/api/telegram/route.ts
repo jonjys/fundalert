@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { appUrl } from "@/lib/config";
-import { setTelegramWatchlist } from "@/lib/store"; // lägg till denna i store
+import { setTelegramWatchlistByChatId } from "@/lib/store";
 
 function commandOf(text: string): string {
   return text.split(/\s+/)[0]?.split("@")[0]?.toLowerCase()?? "";
@@ -8,7 +8,9 @@ function commandOf(text: string): string {
 
 export async function POST(req: NextRequest) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
-  if (!token) return NextResponse.json({ ok: false }, { status: 503 });
+  if (!token) {
+    return NextResponse.json({ ok: false, error: "Missing TELEGRAM_BOT_TOKEN" }, { status: 503 });
+  }
 
   let update: any;
   try { update = await req.json(); } catch { return NextResponse.json({ ok: true }); }
@@ -26,31 +28,28 @@ export async function POST(req: NextRequest) {
     reply = `👋 Welcome to Fundalert.\n\n${origin}\n\nCommands: /alerts /id /alert BNCUSDT`;
   }
   if (command === "/alerts") {
-    reply = `🔔 Fundalert Alerts\n\nYour Chat ID:\n${chatId}\n\nOpen:\n${origin}/alerts`;
+    reply = `🔔 Fundalert Alerts\n\nYour Telegram Chat ID:\n${chatId}\n\nOpen:\n${origin}/alerts`;
   }
   if (command === "/id") {
-    reply = `Your Chat ID is:\n${chatId}`;
+    reply = `Your Telegram Chat ID is:\n${chatId}`;
   }
-
-  // NYTT - lås till specifik trade
   if (command === "/alert") {
-    const symbol = text.split(/\s+/)[1]?.toUpperCase()?.trim();
+    const symbol = text.split(/\s+/)[1]?.toUpperCase()?.trim() || "";
     if (!symbol) {
-      reply = `Skicka: /alert BNCUSDT\nEller /alert ALL för att låsa upp`;
+      reply = `Använd: /alert BNCUSDT\nEller /alert ALL för att låsa upp alla`;
+    } else if (symbol === "ALL") {
+      await setTelegramWatchlistByChatId(String(chatId), "");
+      reply = `🔓 Upplåst - du får alerts för ALLA igen`;
     } else {
-      if (symbol === "ALL") {
-        await setTelegramWatchlist(chatId, "");
-        reply = `🔓 Upplåst - du får alerts för ALLA nu`;
-      } else {
-        await setTelegramWatchlist(chatId, symbol);
-        reply = `🔒 Alerts låsta till ${symbol} ✅\nBara pings för ${symbol} nu`;
-      }
+      await setTelegramWatchlistByChatId(String(chatId), symbol);
+      reply = `🔒 Alerts låsta till ${symbol} ✅\nDu får bara pings för ${symbol} nu`;
     }
   }
 
   try {
     await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
       method: "POST",
+      signal: AbortSignal.timeout(10_000),
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ chat_id: chatId, text: reply }),
     });
