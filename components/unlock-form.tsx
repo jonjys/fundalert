@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { isGiftCode } from "@/lib/codes";
 
 export function UnlockForm() {
   const router = useRouter();
@@ -14,10 +15,12 @@ export function UnlockForm() {
     setBusy(true);
     setError(null);
     try {
-      const res = await fetch("/api/access", {
+      const value = token.trim();
+      const gift = isGiftCode(value);
+      const res = await fetch(gift ? "/api/access/redeem" : "/api/access", {
         method: "POST",
         headers: { "content-type": "application/json" },
-        body: JSON.stringify({ token }),
+        body: JSON.stringify(gift ? { code: value } : { token: value }),
       });
       const json = (await res.json()) as { error?: string };
       if (!res.ok) throw new Error(json.error || "Unlock failed");
@@ -32,14 +35,14 @@ export function UnlockForm() {
   return (
     <form onSubmit={onSubmit} className="space-y-4">
       <label className="block text-sm text-white/70">
-        Access code
+        Gift code
         <textarea
           required
           value={token}
           onChange={(e) => setToken(e.target.value)}
-          rows={4}
+          rows={3}
           className="mt-2 w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2 font-mono text-xs outline-none focus:border-lime/50"
-          placeholder="fa1.…"
+          placeholder="FA-XXXXXXXX"
         />
       </label>
       {error && <p className="text-sm text-rose">{error}</p>}

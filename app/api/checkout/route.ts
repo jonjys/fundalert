@@ -1,5 +1,7 @@
+import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
-import { appUrl, isStripeConfigured, PLANS, priceIdForPlan } from "@/lib/config";
+import { isReferralCode } from "@/lib/codes";
+import { appUrl, isStripeConfigured, PLANS, priceIdForPlan, REFERRAL_COOKIE } from "@/lib/config";
 import { getStripe, integrationIdentifier } from "@/lib/stripe";
 import { isPlanId, type PlanId } from "@/lib/types";
 import type Stripe from "stripe";
@@ -37,14 +39,22 @@ export async function POST(request: Request) {
 
   const origin = request.headers.get("origin") || appUrl();
   const stripe = getStripe();
+  const jar = await cookies();
+  const referral = jar.get(REFERRAL_COOKIE)?.value?.trim().toUpperCase() ?? "";
   const params: Stripe.Checkout.SessionCreateParams = {
     mode: PLANS[plan].mode,
     line_items: [{ price, quantity: 1 }],
-    success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}`,
+    success_url: `${origin}/success?session_id={CHECKOUT_SESSION_ID}&paid=${plan}`,
     cancel_url: `${origin}/#pricing`,
     allow_promotion_codes: true,
+    // Keep plan as client_reference_id so Dashboard exports stay readable.
+    // Referral is also copied to metadata for later Stripe tracking (TODO: Payment Link dashboard).
     client_reference_id: plan,
-    metadata: { plan, product: "fundalert" },
+    metadata: {
+      plan,
+      product: "fundalert",
+      ...(isReferralCode(referral) ? { referral } : {}),
+    },
     integration_identifier: integrationIdentifier(),
   };
   if (PLANS[plan].mode === "payment") {

@@ -2,7 +2,11 @@ import type { PlanId } from "./types";
 
 export const FREE_RATE_LIMIT = 5;
 export const ACCESS_COOKIE = "fa_access";
+export const REFERRAL_COOKIE = "fa_ref";
 export const DEFAULT_ALERT_THRESHOLD_PCT = 0.05;
+export const GIFT_TTL_MS = 48 * 60 * 60 * 1000;
+export const INVITEE_BONUS_MS = 3 * 24 * 60 * 60 * 1000;
+export const INVITER_REWARD_MS = 7 * 24 * 60 * 60 * 1000;
 
 /** Live Stripe Payment Links (AI Commerce OS). CTAs work without STRIPE_SECRET_KEY. */
 export const PAYMENT_LINKS: Partial<Record<PlanId, string>> = {
