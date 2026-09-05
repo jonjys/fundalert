@@ -13,7 +13,7 @@ export async function POST(req: NextRequest) {
   const update = await req.json();
 
   const chatId = update?.message?.chat?.id;
-  const text = update?.message?.text;
+  const text = update?.message?.text?.trim();
 
   if (!chatId) {
     return NextResponse.json({ ok: true });
@@ -24,6 +24,15 @@ export async function POST(req: NextRequest) {
   if (text === "/start") {
     reply =
       "👋 Welcome to Fundalert.\n\nFunding-rate radar alerts and market signals.\nNo custody. No auto-trading.\n\nhttps://fundalert-xi.vercel.app";
+  }
+
+  if (text === "/alerts") {
+    reply =
+      `🔔 Fundalert Alerts\n\nYour Telegram Chat ID:\n${chatId}\n\nOpen:\nhttps://fundalert-xi.vercel.app/alerts\n\nPaste this Chat ID there to activate alerts.`;
+  }
+
+  if (text === "/id") {
+    reply = `Your Telegram Chat ID is:\n${chatId}`;
   }
 
   await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
