@@ -66,7 +66,7 @@ export function PaperTrack({ track }: { track: PaperTrackSummary }) {
                   </td>
                   <td className="mono px-2 py-2">
                     {row.symbol}
-                    <span className="ml-2 text-xs text-white/40">{row.exchange}</span>
+                    <span className="ml-2 text-xs text-white/40">· {row.exchange}</span>
                   </td>
                   <td className="px-2 py-2 uppercase text-white/70">{row.side}</td>
                   <td className="mono px-2 py-2">{formatPct(row.fundingRatePct)}</td>
