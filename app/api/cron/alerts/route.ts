@@ -11,7 +11,7 @@ function authorized(request: Request): boolean {
   const auth = request.headers.get("authorization");
   if (secret) return auth === `Bearer ${secret}`;
   if (request.headers.get("x-vercel-cron") === "1") return true;
-  if (process.env.NODE_ENV !== "production") return true;
+  if (process.env.NODE_ENV!== "production") return true;
   return false;
 }
 
@@ -19,13 +19,8 @@ export async function GET(request: Request) {
   if (!authorized(request)) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-
   if (!telegramConfigured()) {
-    return NextResponse.json({
-      ok: true,
-      skipped: true,
-      reason: "TELEGRAM_BOT_TOKEN is not set — cron is a no-op until the bot exists.",
-    });
+    return NextResponse.json({ ok: true, skipped: true, reason: "TELEGRAM_BOT_TOKEN is not set" });
   }
 
   const [rates, subscribers] = await Promise.all([getRates(true), listAlertSubscribers()]);
@@ -34,22 +29,28 @@ export async function GET(request: Request) {
 
   for (const sub of subscribers) {
     if (!sub.telegramChatId) continue;
-    const hits = rates.rates.filter(
+
+    let hits = rates.rates.filter(
       (row) => Math.abs(row.fundingRatePct) >= sub.telegramThresholdPct,
     );
+
+    // LÅSNING TILL SPECIFIK TRADE
+    const watchlist = (sub as any).telegramWatchlist as string | null;
+    if (watchlist && watchlist.trim()!== "" && watchlist.toUpperCase()!== "ALL") {
+      const wl = watchlist.toUpperCase().split(',').map(s=>s.trim()).filter(Boolean);
+      hits = hits.filter(row =>
+        wl.some(w => row.symbol.toUpperCase().includes(w))
+      );
+    }
+
     if (hits.length === 0) continue;
-    const key = hits
-      .slice(0, 8)
-      .map((row) => `${row.exchange}:${row.symbol}:${row.fundingRatePct.toFixed(4)}`)
-      .join("|");
+
+    const key = hits.slice(0, 8).map(r=>`${r.exchange}:${r.symbol}:${r.fundingRatePct.toFixed(4)}`).join("|");
     if (key && key === sub.lastAlertKey) continue;
 
     const result = await sendTelegramMessage(
       sub.telegramChatId,
-      formatAlertMessage({
-        thresholdPct: sub.telegramThresholdPct,
-        rows: hits,
-      }),
+      formatAlertMessage({ thresholdPct: sub.telegramThresholdPct, rows: hits }),
     );
     if (result.ok) {
       await markAlertSent(sub.stripeSessionId, key);
@@ -59,12 +60,5 @@ export async function GET(request: Request) {
     }
   }
 
-  return NextResponse.json({
-    ok: true,
-    checked: subscribers.length,
-    sent: sent.length,
-    details: sent,
-    errors,
-    fetchedAt: rates.fetchedAt,
-  });
+  return NextResponse.json({ ok: true, checked: subscribers.length, sent: sent.length, details: sent, errors, fetchedAt: rates.fetchedAt });
 }
