@@ -87,6 +87,7 @@ export async function grantFromCheckoutSession(
     telegramChatId: existing?.telegramChatId ?? null,
     telegramThresholdPct: existing?.telegramThresholdPct ?? 0.05,
     telegramEnabled: existing?.telegramEnabled ?? false,
+    telegramWatchlist: null,
     lastAlertAt: existing?.lastAlertAt ?? null,
     lastAlertKey: existing?.lastAlertKey ?? null,
     referralCode: existing?.referralCode ?? null,
