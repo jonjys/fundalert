@@ -47,6 +47,20 @@ export type Entitlement = {
   telegramEnabled: boolean;
   lastAlertAt: number | null;
   lastAlertKey: string | null;
+  referralCode: string | null;
+  referredBy: string | null;
+  referralRewardsGranted: number;
+};
+
+export type GiftCode = {
+  id: string;
+  codeHash: string;
+  stripeSessionId: string;
+  plan: PlanId;
+  email: string;
+  expiresAt: number;
+  createdAt: number;
+  redeemedAt: number | null;
 };
 
 export type AccessState = {

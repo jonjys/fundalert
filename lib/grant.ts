@@ -1,10 +1,11 @@
 import { randomUUID } from "node:crypto";
 import type Stripe from "stripe";
 import { hashToken, signToken } from "./access";
+import { isReferralCode } from "./codes";
 import { planFromPriceId, PLANS } from "./config";
 import { getStripe, sessionEmail, sessionPaid, sessionPriceId } from "./stripe";
 import { getEntitlementBySession, upsertEntitlement } from "./store";
-import type { Entitlement, PlanId } from "./types";
+import { isPlanId, type Entitlement, type PlanId } from "./types";
 
 function expiryForPlan(plan: PlanId, subscriptionPeriodEnd: number | null): number | null {
   if (plan === "lifetime") return null;
@@ -43,8 +44,8 @@ export async function grantFromCheckoutSession(
   const priceId = sessionPriceId(expanded);
   const plan =
     planFromPriceId(priceId) ||
-    (expanded.metadata?.plan as PlanId | undefined) ||
-    (expanded.client_reference_id as PlanId | undefined);
+    (isPlanId(expanded.metadata?.plan) ? expanded.metadata.plan : null) ||
+    (isPlanId(expanded.client_reference_id) ? expanded.client_reference_id : null);
 
   if (!plan || !PLANS[plan]) return null;
 
@@ -58,16 +59,20 @@ export async function grantFromCheckoutSession(
       : expanded.customer?.id ?? null;
 
   const periodEnd = await subscriptionPeriodEnd(subscriptionId);
-  const expiresAt = expiryForPlan(plan, periodEnd);
   const existing = await getEntitlementBySession(expanded.id);
-  const payload = {
-    v: 1 as const,
+  let expiresAt = expiryForPlan(plan, periodEnd);
+  if (existing?.expiresAt === null) {
+    expiresAt = null;
+  } else if (existing?.expiresAt && existing.expiresAt > Date.now()) {
+    expiresAt = existing.expiresAt;
+  }
+
+  const token = tokenFromEntitlementFields({
     email,
     plan,
-    exp: expiresAt,
-    sid: expanded.id,
-  };
-  const token = signToken(payload);
+    expiresAt,
+    stripeSessionId: expanded.id,
+  });
 
   const entitlement = await upsertEntitlement({
     id: existing?.id ?? randomUUID(),
@@ -84,7 +89,42 @@ export async function grantFromCheckoutSession(
     telegramEnabled: existing?.telegramEnabled ?? false,
     lastAlertAt: existing?.lastAlertAt ?? null,
     lastAlertKey: existing?.lastAlertKey ?? null,
+    referralCode: existing?.referralCode ?? null,
+    referredBy: existing?.referredBy ?? null,
+    referralRewardsGranted: existing?.referralRewardsGranted ?? 0,
   });
 
   return { token, entitlement };
+}
+
+export function tokenFromEntitlementFields(input: {
+  email: string;
+  plan: PlanId;
+  expiresAt: number | null;
+  stripeSessionId: string;
+}): string {
+  return signToken({
+    v: 1,
+    email: input.email,
+    plan: input.plan,
+    exp: input.expiresAt,
+    sid: input.stripeSessionId,
+  });
+}
+
+export function tokenFromEntitlement(entitlement: Entitlement): string {
+  return tokenFromEntitlementFields({
+    email: entitlement.email,
+    plan: entitlement.plan,
+    expiresAt: entitlement.expiresAt,
+    stripeSessionId: entitlement.stripeSessionId,
+  });
+}
+
+export function referralFromCheckoutSession(session: Stripe.Checkout.Session): string | null {
+  const meta = session.metadata?.referral?.trim().toUpperCase();
+  if (meta && isReferralCode(meta)) return meta;
+  const ref = session.client_reference_id?.trim().toUpperCase();
+  if (ref && isReferralCode(ref) && !isPlanId(ref)) return ref;
+  return null;
 }

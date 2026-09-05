@@ -11,19 +11,19 @@ export const dynamic = "force-dynamic";
 export default async function HomePage({
   searchParams,
 }: {
-  searchParams: Promise<{ paid?: string }>;
+  searchParams: Promise<{ paid?: string; session_id?: string }>;
 }) {
   const rates = await getRates(false);
   const stripeReady = isStripeConfigured();
-  const { paid } = await searchParams;
+  const { paid, session_id: sessionId } = await searchParams;
   const paidPlan = isPlanId(paid) ? paid : null;
 
   return (
     <main className="relative mx-auto w-full max-w-6xl px-4 pb-20 pt-12">
       <div className="scanline pointer-events-none absolute inset-0 opacity-40" />
-      {paidPlan && (
+      {(paidPlan || sessionId) && (
         <div className="relative">
-          <PaidReturnNotice plan={paidPlan} />
+          <PaidReturnNotice plan={paidPlan} sessionId={sessionId ?? null} />
         </div>
       )}
       <section className="relative grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:items-end">

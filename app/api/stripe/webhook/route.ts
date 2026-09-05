@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
-import { grantFromCheckoutSession } from "@/lib/grant";
-import { expireBySubscription, extendBySubscription } from "@/lib/store";
+import { grantFromCheckoutSession, referralFromCheckoutSession } from "@/lib/grant";
+import { applyPaidReferral } from "@/lib/referral";
+import { ensureReferralCode, expireBySubscription, extendBySubscription } from "@/lib/store";
 import { getStripe } from "@/lib/stripe";
 
 export const dynamic = "force-dynamic";
@@ -34,7 +35,14 @@ export async function POST(request: Request) {
       case "checkout.session.completed":
       case "checkout.session.async_payment_succeeded": {
         const session = event.data.object as Stripe.Checkout.Session;
-        await grantFromCheckoutSession(session);
+        const granted = await grantFromCheckoutSession(session);
+        if (granted) {
+          await ensureReferralCode(granted.entitlement.stripeSessionId);
+          const referral = referralFromCheckoutSession(session);
+          if (referral) {
+            await applyPaidReferral(granted.entitlement.stripeSessionId, referral);
+          }
+        }
         break;
       }
       case "invoice.paid": {

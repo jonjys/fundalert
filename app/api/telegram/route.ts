@@ -1,4 +1,9 @@
 import { NextRequest, NextResponse } from "next/server";
+import { appUrl } from "@/lib/config";
+
+function commandOf(text: string): string {
+  return text.split(/\s+/)[0]?.split("@")[0]?.toLowerCase() ?? "";
+}
 
 export async function POST(req: NextRequest) {
   const token = process.env.TELEGRAM_BOT_TOKEN;
@@ -6,45 +11,62 @@ export async function POST(req: NextRequest) {
   if (!token) {
     return NextResponse.json(
       { ok: false, error: "Missing TELEGRAM_BOT_TOKEN" },
-      { status: 500 }
+      { status: 503 },
     );
   }
 
-  const update = await req.json();
+  let update: {
+    message?: { chat?: { id?: number }; text?: string };
+    edited_message?: { chat?: { id?: number }; text?: string };
+  };
+  try {
+    update = (await req.json()) as typeof update;
+  } catch {
+    return NextResponse.json({ ok: true });
+  }
 
-  const chatId = update?.message?.chat?.id;
-  const text = update?.message?.text?.trim();
+  const message = update.message ?? update.edited_message;
+  const chatId = message?.chat?.id;
+  const text = message?.text?.trim() ?? "";
 
   if (!chatId) {
     return NextResponse.json({ ok: true });
   }
 
+  const origin = appUrl();
+  const command = commandOf(text);
   let reply = "Fundalert bot is online ✅";
 
-  if (text === "/start") {
+  if (command === "/start") {
     reply =
-      "👋 Welcome to Fundalert.\n\nFunding-rate radar alerts and market signals.\nNo custody. No auto-trading.\n\nhttps://fundalert-xi.vercel.app";
+      "👋 Welcome to Fundalert.\n\nFunding-rate radar alerts and market signals.\nNo custody. No auto-trading.\n\n" +
+      `${origin}\n\nCommands: /alerts /id`;
   }
 
-  if (text === "/alerts") {
+  if (command === "/alerts") {
     reply =
-      `🔔 Fundalert Alerts\n\nYour Telegram Chat ID:\n${chatId}\n\nOpen:\nhttps://fundalert-xi.vercel.app/alerts\n\nPaste this Chat ID there to activate alerts.`;
+      `🔔 Fundalert Alerts\n\nYour Telegram Chat ID:\n${chatId}\n\nOpen:\n${origin}/alerts\n\nPaste this Chat ID there to activate alerts.`;
   }
 
-  if (text === "/id") {
+  if (command === "/id") {
     reply = `Your Telegram Chat ID is:\n${chatId}`;
   }
 
-  await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
-    method: "POST",
-    headers: {
-      "Content-Type": "application/json",
-    },
-    body: JSON.stringify({
-      chat_id: chatId,
-      text: reply,
-    }),
-  });
+  try {
+    await fetch(`https://api.telegram.org/bot${token}/sendMessage`, {
+      method: "POST",
+      signal: AbortSignal.timeout(10_000),
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        chat_id: chatId,
+        text: reply,
+      }),
+    });
+  } catch {
+    // Acknowledge the update so Telegram does not retry forever.
+  }
 
   return NextResponse.json({ ok: true });
 }

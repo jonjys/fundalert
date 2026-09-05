@@ -1,9 +1,10 @@
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import path from "node:path";
 import { createClient, type Client } from "@libsql/client";
-import type { Entitlement, PlanId } from "./types";
+import { newReferralCode } from "./codes";
+import type { Entitlement, GiftCode, PlanId } from "./types";
 
-type StoreFile = { entitlements: Entitlement[] };
+type StoreFile = { entitlements: Entitlement[]; giftCodes: GiftCode[] };
 
 const FILE_PATH =
   process.env.STORE_PATH ||
@@ -22,16 +23,22 @@ function serialize(row: Entitlement): Entitlement {
   return {
     ...row,
     telegramEnabled: Boolean(row.telegramEnabled),
+    referralCode: row.referralCode ?? null,
+    referredBy: row.referredBy ?? null,
+    referralRewardsGranted: row.referralRewardsGranted ?? 0,
   };
 }
 
 async function readFileStore(): Promise<StoreFile> {
   try {
     const raw = await readFile(FILE_PATH, "utf8");
-    const parsed = JSON.parse(raw) as StoreFile;
-    return { entitlements: parsed.entitlements ?? [] };
+    const parsed = JSON.parse(raw) as Partial<StoreFile>;
+    return {
+      entitlements: (parsed.entitlements ?? []).map(serialize),
+      giftCodes: parsed.giftCodes ?? [],
+    };
   } catch {
-    return { entitlements: [] };
+    return { entitlements: [], giftCodes: [] };
   }
 }
 
@@ -75,9 +82,42 @@ async function turso(): Promise<Client> {
         telegram_threshold_pct REAL NOT NULL DEFAULT 0.05,
         telegram_enabled INTEGER NOT NULL DEFAULT 0,
         last_alert_at INTEGER,
-        last_alert_key TEXT
+        last_alert_key TEXT,
+        referral_code TEXT,
+        referred_by TEXT,
+        referral_rewards_granted INTEGER NOT NULL DEFAULT 0
       )
     `);
+    await libsql.execute(`
+      CREATE TABLE IF NOT EXISTS gift_codes (
+        id TEXT PRIMARY KEY,
+        code_hash TEXT NOT NULL UNIQUE,
+        stripe_session_id TEXT NOT NULL,
+        plan TEXT NOT NULL,
+        email TEXT NOT NULL,
+        expires_at INTEGER NOT NULL,
+        created_at INTEGER NOT NULL,
+        redeemed_at INTEGER
+      )
+    `);
+    for (const stmt of [
+      "ALTER TABLE entitlements ADD COLUMN referral_code TEXT",
+      "ALTER TABLE entitlements ADD COLUMN referred_by TEXT",
+      "ALTER TABLE entitlements ADD COLUMN referral_rewards_granted INTEGER NOT NULL DEFAULT 0",
+    ]) {
+      try {
+        await libsql.execute(stmt);
+      } catch {
+        // Column already exists on older Turso databases.
+      }
+    }
+    try {
+      await libsql.execute(
+        "CREATE UNIQUE INDEX IF NOT EXISTS entitlements_referral_code ON entitlements(referral_code)",
+      );
+    } catch {
+      // Ignore if the engine rejects the index on existing duplicates.
+    }
     libsqlReady = true;
   }
   return libsql;
@@ -101,7 +141,23 @@ function rowToEntitlement(row: Record<string, unknown>): Entitlement {
     telegramEnabled: Boolean(Number(row.telegram_enabled)),
     lastAlertAt: row.last_alert_at == null ? null : Number(row.last_alert_at),
     lastAlertKey: row.last_alert_key ? String(row.last_alert_key) : null,
+    referralCode: row.referral_code ? String(row.referral_code) : null,
+    referredBy: row.referred_by ? String(row.referred_by) : null,
+    referralRewardsGranted: Number(row.referral_rewards_granted ?? 0),
   });
+}
+
+function rowToGift(row: Record<string, unknown>): GiftCode {
+  return {
+    id: String(row.id),
+    codeHash: String(row.code_hash),
+    stripeSessionId: String(row.stripe_session_id),
+    plan: row.plan as PlanId,
+    email: String(row.email),
+    expiresAt: Number(row.expires_at),
+    createdAt: Number(row.created_at),
+    redeemedAt: row.redeemed_at == null ? null : Number(row.redeemed_at),
+  };
 }
 
 export async function upsertEntitlement(row: Entitlement): Promise<Entitlement> {
@@ -113,15 +169,18 @@ export async function upsertEntitlement(row: Entitlement): Promise<Entitlement> 
         INSERT INTO entitlements (
           id, email, plan, token_hash, stripe_session_id, stripe_customer_id,
           stripe_subscription_id, expires_at, created_at, telegram_chat_id,
-          telegram_threshold_pct, telegram_enabled, last_alert_at, last_alert_key
-        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+          telegram_threshold_pct, telegram_enabled, last_alert_at, last_alert_key,
+          referral_code, referred_by, referral_rewards_granted
+        ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
         ON CONFLICT(stripe_session_id) DO UPDATE SET
           email=excluded.email,
           plan=excluded.plan,
           token_hash=excluded.token_hash,
           stripe_customer_id=excluded.stripe_customer_id,
           stripe_subscription_id=excluded.stripe_subscription_id,
-          expires_at=excluded.expires_at
+          expires_at=excluded.expires_at,
+          referral_code=COALESCE(entitlements.referral_code, excluded.referral_code),
+          referred_by=COALESCE(entitlements.referred_by, excluded.referred_by)
       `,
       args: [
         next.id,
@@ -138,23 +197,29 @@ export async function upsertEntitlement(row: Entitlement): Promise<Entitlement> 
         next.telegramEnabled ? 1 : 0,
         next.lastAlertAt,
         next.lastAlertKey,
+        next.referralCode,
+        next.referredBy,
+        next.referralRewardsGranted,
       ],
     });
-    return next;
+    return (await getEntitlementBySession(next.stripeSessionId)) ?? next;
   }
 
   return enqueue(async () => {
     const data = await readFileStore();
     const idx = data.entitlements.findIndex((e) => e.stripeSessionId === next.stripeSessionId);
     if (idx >= 0) {
+      const prev = data.entitlements[idx];
       data.entitlements[idx] = {
-        ...data.entitlements[idx],
+        ...prev,
         email: next.email,
         plan: next.plan,
         tokenHash: next.tokenHash,
         stripeCustomerId: next.stripeCustomerId,
         stripeSubscriptionId: next.stripeSubscriptionId,
         expiresAt: next.expiresAt,
+        referralCode: prev.referralCode ?? next.referralCode,
+        referredBy: prev.referredBy ?? next.referredBy,
       };
     } else {
       data.entitlements.push(next);
@@ -317,4 +382,155 @@ export async function extendBySubscription(
 
 export function storeBackend(): "turso" | "json-file" {
   return tursoEnabled() ? "turso" : "json-file";
+}
+
+export async function getEntitlementByReferralCode(
+  referralCode: string,
+): Promise<Entitlement | null> {
+  const code = referralCode.trim().toUpperCase();
+  if (!code) return null;
+  if (tursoEnabled()) {
+    const db = await turso();
+    const rs = await db.execute({
+      sql: "SELECT * FROM entitlements WHERE referral_code = ? LIMIT 1",
+      args: [code],
+    });
+    const row = rs.rows[0] as Record<string, unknown> | undefined;
+    return row ? rowToEntitlement(row) : null;
+  }
+  const data = await readFileStore();
+  return data.entitlements.find((e) => e.referralCode === code) ?? null;
+}
+
+export async function ensureReferralCode(stripeSessionId: string): Promise<string | null> {
+  const existing = await getEntitlementBySession(stripeSessionId);
+  if (!existing) return null;
+  if (existing.referralCode) return existing.referralCode;
+
+  for (let attempt = 0; attempt < 6; attempt += 1) {
+    const code = newReferralCode();
+    const taken = await getEntitlementByReferralCode(code);
+    if (taken) continue;
+    const updated = await patchEntitlement(stripeSessionId, { referralCode: code });
+    return updated?.referralCode ?? code;
+  }
+  return null;
+}
+
+export async function patchEntitlement(
+  stripeSessionId: string,
+  fields: Partial<
+    Pick<
+      Entitlement,
+      | "expiresAt"
+      | "tokenHash"
+      | "referralCode"
+      | "referredBy"
+      | "referralRewardsGranted"
+    >
+  >,
+): Promise<Entitlement | null> {
+  if (tursoEnabled()) {
+    const current = await getEntitlementBySession(stripeSessionId);
+    if (!current) return null;
+    const next = { ...current, ...fields };
+    const db = await turso();
+    await db.execute({
+      sql: `UPDATE entitlements
+            SET expires_at = ?, token_hash = ?, referral_code = ?, referred_by = ?,
+                referral_rewards_granted = ?
+            WHERE stripe_session_id = ?`,
+      args: [
+        next.expiresAt,
+        next.tokenHash,
+        next.referralCode,
+        next.referredBy,
+        next.referralRewardsGranted,
+        stripeSessionId,
+      ],
+    });
+    return getEntitlementBySession(stripeSessionId);
+  }
+  return enqueue(async () => {
+    const data = await readFileStore();
+    const idx = data.entitlements.findIndex((e) => e.stripeSessionId === stripeSessionId);
+    if (idx < 0) return null;
+    data.entitlements[idx] = { ...data.entitlements[idx], ...fields };
+    await writeFileStore(data);
+    return data.entitlements[idx];
+  });
+}
+
+export async function insertGiftCode(row: GiftCode): Promise<GiftCode> {
+  if (tursoEnabled()) {
+    const db = await turso();
+    await db.execute({
+      sql: `UPDATE gift_codes SET redeemed_at = ?
+            WHERE stripe_session_id = ? AND redeemed_at IS NULL`,
+      args: [Date.now(), row.stripeSessionId],
+    });
+    await db.execute({
+      sql: `INSERT INTO gift_codes (
+              id, code_hash, stripe_session_id, plan, email, expires_at, created_at, redeemed_at
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      args: [
+        row.id,
+        row.codeHash,
+        row.stripeSessionId,
+        row.plan,
+        row.email,
+        row.expiresAt,
+        row.createdAt,
+        row.redeemedAt,
+      ],
+    });
+    return row;
+  }
+  return enqueue(async () => {
+    const data = await readFileStore();
+    const now = Date.now();
+    data.giftCodes = data.giftCodes.map((g) =>
+      g.stripeSessionId === row.stripeSessionId && g.redeemedAt == null
+        ? { ...g, redeemedAt: now }
+        : g,
+    );
+    data.giftCodes.push(row);
+    await writeFileStore(data);
+    return row;
+  });
+}
+
+export async function getGiftByHash(codeHash: string): Promise<GiftCode | null> {
+  if (tursoEnabled()) {
+    const db = await turso();
+    const rs = await db.execute({
+      sql: "SELECT * FROM gift_codes WHERE code_hash = ? LIMIT 1",
+      args: [codeHash],
+    });
+    const row = rs.rows[0] as Record<string, unknown> | undefined;
+    return row ? rowToGift(row) : null;
+  }
+  const data = await readFileStore();
+  return data.giftCodes.find((g) => g.codeHash === codeHash) ?? null;
+}
+
+export async function markGiftRedeemed(codeHash: string): Promise<GiftCode | null> {
+  const now = Date.now();
+  if (tursoEnabled()) {
+    const db = await turso();
+    await db.execute({
+      sql: "UPDATE gift_codes SET redeemed_at = ? WHERE code_hash = ? AND redeemed_at IS NULL",
+      args: [now, codeHash],
+    });
+    return getGiftByHash(codeHash);
+  }
+  return enqueue(async () => {
+    const data = await readFileStore();
+    const idx = data.giftCodes.findIndex((g) => g.codeHash === codeHash);
+    if (idx < 0) return null;
+    if (data.giftCodes[idx].redeemedAt) return data.giftCodes[idx];
+    data.giftCodes[idx] = { ...data.giftCodes[idx], redeemedAt: now };
+    await writeFileStore(data);
+    return data.giftCodes[idx];
+  });
 }
