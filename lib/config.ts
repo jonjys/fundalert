@@ -26,6 +26,26 @@ export const FALLBACK_PRICE_IDS: Record<PlanId, string> = {
 
 export const BILLING_EMAIL = "billing@nyttolabs.com";
 
+/** |funding %| at or above this is an "extreme" trade card. */
+export const CARD_THRESHOLD_PCT = 0.05;
+/** Conservative suggested size as % of equity. Scales with |funding|, then caps. */
+export const CARD_SIZE_MIN_PCT = 5;
+export const CARD_SIZE_MAX_PCT = 15;
+/** Invalidation: rate flipped past this % onto the opposite side. */
+export const CARD_FLIP_PCT = 0.01;
+/** Invalidation: |rate| collapsed below max(threshold, issued × this). */
+export const CARD_COLLAPSE_RATIO = 0.5;
+/** Paper mark horizon — one typical funding interval. */
+export const PAPER_HORIZON_MS = 8 * 60 * 60 * 1000;
+export const PAPER_WINDOW_DAYS = 7;
+export const CHANNEL_CARD_LIMIT = 3;
+/** Telegram 4096-char cap — keep private alerts to a handful of full cards. */
+export const TELEGRAM_CARD_LIMIT = 4;
+export const CARD_DISCLAIMER =
+  "Informational tip only. Not financial advice. You execute manually. No custody, no auto-orders.";
+export const PAPER_RULE =
+  "Simulated. A card is issued when |funding| ≥ 0.05%. After 8h we re-read the same venue+contract. Win = same-sign carry still above the collapse level. Lose = rate flipped past ±0.01%. Flat = |rate| collapsed. Expired = venue missing at settle. Paper P&L ≈ size% × |issued funding| × (8h / interval) as % of equity — ignores mark-price, fees, and actual funding prints.";
+
 export function lifetimeMailto(): string {
   const subject = encodeURIComponent("Fundalert Lifetime — 1,990 SEK");
   const body = encodeURIComponent(
@@ -55,12 +75,12 @@ export const PLANS: Record<
     priceLabel: "29 SEK",
     amountSek: 29,
     cadence: "3 days",
-    blurb: "Try the full radar cheaply. Then upgrade to Weekly if the book is useful.",
+    blurb: "Telegram trade cards when funding goes extreme. Then upgrade if the desk is useful.",
     features: [
-      "Full funding radar for 3 days",
-      "Same book as Weekly — all coins",
-      "No custody, no auto-trade",
-      "Tips only — not financial advice",
+      "Trade cards for 3 days (bias, size, invalidation)",
+      "Private Telegram alerts in the same card format",
+      "Full live book + paper track record",
+      "Tips only — you execute manually",
     ],
     mode: "payment",
     highlighted: true,
@@ -72,11 +92,11 @@ export const PLANS: Record<
     priceLabel: "99 SEK",
     amountSek: 99,
     cadence: "per week",
-    blurb: "Full radar for a funding cycle. Cancel anytime.",
+    blurb: "Trade cards for a funding cycle. Cancel anytime.",
     features: [
-      "Full funding radar, all coins",
-      "Binance USDT-M + Bybit linear",
-      "Telegram threshold alerts",
+      "Extreme funding trade cards",
+      "Binance + Bybit + OKX majors",
+      "Telegram cards + watchlist filter",
       "Access code after checkout",
     ],
     mode: "subscription",
@@ -88,7 +108,7 @@ export const PLANS: Record<
     priceLabel: "399 SEK",
     amountSek: 399,
     cadence: "per month",
-    blurb: "The desk setup. Refresh, sort, and get pinged.",
+    blurb: "The desk setup. Cards, pings, and the full book.",
     features: [
       "Everything in Weekly",
       "Best value for active watching",

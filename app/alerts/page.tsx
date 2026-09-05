@@ -14,8 +14,8 @@ export default async function AlertsPage() {
       <main className="mx-auto w-full max-w-xl px-4 py-16">
         <h1 className="text-3xl font-semibold">Telegram alerts</h1>
         <p className="mt-3 text-white/60">
-          Alerts are for paying users. Unlock Trial, Weekly, Pro, or Lifetime, then paste
-          your Telegram chat id.
+          Private trade-card pings are for paying users. Unlock Trial, Weekly, Pro, or
+          Lifetime, then paste your Telegram chat id.
         </p>
         <Link
           href="/#pricing"
@@ -33,10 +33,11 @@ export default async function AlertsPage() {
   return (
     <main className="mx-auto w-full max-w-xl px-4 py-12">
       <p className="text-xs uppercase tracking-[0.2em] text-lime/80">Paid feature</p>
-      <h1 className="mt-2 text-3xl font-semibold">Telegram alerts</h1>
+      <h1 className="mt-2 text-3xl font-semibold">Telegram trade cards</h1>
       <p className="mt-3 text-sm leading-6 text-white/60">
-        Message your bot first (so it can reply), then paste the numeric chat id. A Vercel
-        cron checks rates about every 10 minutes. This is a ping, not an order.
+        Message your bot first (so it can reply), then paste the numeric chat id. Cron
+        sends the same trade-card format as /signals when |funding| crosses your
+        threshold. Watchlist filter still works. This is a ping, not an order.
       </p>
       <div className="mt-8 rounded-2xl border border-white/10 bg-white/[0.03] p-5">
         <AlertsForm

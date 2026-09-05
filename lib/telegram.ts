@@ -1,3 +1,13 @@
+import {
+  CARD_DISCLAIMER,
+  CARD_SIZE_MAX_PCT,
+  CHANNEL_CARD_LIMIT,
+  PAYMENT_LINKS,
+  TELEGRAM_CARD_LIMIT,
+} from "./config";
+import { exchangeLabel, formatPct } from "./format";
+import type { TradeCard } from "./types";
+
 const TELEGRAM_API = "https://api.telegram.org";
 
 export function telegramConfigured(): boolean {
@@ -34,26 +44,88 @@ export async function sendTelegramMessage(
   }
 }
 
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;");
+}
+
+export function formatTradeCardHtml(card: TradeCard): string {
+  const bias = card.side === "short" ? "SHORT perps" : "LONG perps";
+  const conf = card.confidence.toUpperCase();
+  return [
+    `<b>TRADE CARD</b> · ${escapeHtml(conf)}`,
+    `<code>${escapeHtml(card.symbol)}</code> · ${escapeHtml(exchangeLabel(card.exchange))}`,
+    "",
+    `Bias: <b>${bias}</b>`,
+    `${escapeHtml(card.biasLabel)}`,
+    `Funding: ${escapeHtml(formatPct(card.fundingRatePct))}  ·  24h ${escapeHtml(formatPct(card.expected24hPct))} of notional`,
+    `APR (interval annualized): ${escapeHtml(formatPct(card.annualizedPct, 1))}`,
+    `Size: ${card.sizePct}% of equity (conservative cap ${CARD_SIZE_MAX_PCT}%)`,
+    `Entry: ${escapeHtml(card.entryNote)}`,
+    `Invalidation: ${escapeHtml(card.invalidation)}`,
+    "",
+    `<i>${escapeHtml(card.disclaimer)}</i>`,
+  ].join("\n");
+}
+
+export function formatTradeCardsMessage(input: {
+  title: string;
+  subtitle?: string;
+  cards: TradeCard[];
+  footer?: string;
+  max?: number;
+}): string {
+  const cards = input.cards.slice(0, input.max ?? 8);
+  const blocks = [`<b>${escapeHtml(input.title)}</b>`];
+  if (input.subtitle) blocks.push(escapeHtml(input.subtitle));
+  blocks.push("");
+
+  for (const [index, card] of cards.entries()) {
+    if (index > 0) blocks.push("————");
+    blocks.push(formatTradeCardHtml(card));
+  }
+
+  if (cards.length === 0) {
+    blocks.push("No extreme funding cards right now.");
+  }
+
+  blocks.push("", `<i>${escapeHtml(input.footer ?? CARD_DISCLAIMER)}</i>`);
+  return blocks.join("\n");
+}
+
 export function formatAlertMessage(input: {
   thresholdPct: number;
-  rows: Array<{
-    exchange: string;
-    symbol: string;
-    fundingRatePct: number;
-    annualizedPct: number;
-  }>;
+  cards: TradeCard[];
 }): string {
+  return formatTradeCardsMessage({
+    title: "Fundalert — trade cards",
+    subtitle: `|funding| ≥ ${input.thresholdPct.toFixed(4)}%  ·  tips only, you execute`,
+    cards: input.cards,
+    max: TELEGRAM_CARD_LIMIT,
+  });
+}
+
+export function formatChannelMessage(input: { cards: TradeCard[]; origin: string }): string {
+  const trial = PAYMENT_LINKS.trial ?? `${input.origin}/#pricing`;
+  const cards = input.cards.slice(0, CHANNEL_CARD_LIMIT);
   const lines = [
-    `<b>Fundalert</b> — funding threshold hit`,
-    `(|funding| &gt; ${input.thresholdPct.toFixed(4)}%)`,
+    "<b>⚡ FUNDALERT TRADE CARDS</b>",
+    "Extreme funding — classic carry tips. You execute.",
     "",
   ];
-  for (const row of input.rows.slice(0, 12)) {
-    const sign = row.fundingRatePct > 0 ? "+" : "";
-    lines.push(
-      `${row.exchange} <code>${row.symbol}</code> ${sign}${row.fundingRatePct.toFixed(4)}%  APR ${row.annualizedPct.toFixed(1)}%`,
-    );
+  for (const [index, card] of cards.entries()) {
+    if (index > 0) lines.push("————");
+    lines.push(formatTradeCardHtml(card));
   }
-  lines.push("", "<i>Informational only. Not financial advice. No custody, no auto-trading.</i>");
+  lines.push(
+    "",
+    `<b>Trial 3 days · 29 SEK</b>`,
+    escapeHtml(trial),
+    `${escapeHtml(input.origin)}/signals`,
+    "",
+    `<i>${escapeHtml(CARD_DISCLAIMER)}</i>`,
+  );
   return lines.join("\n");
 }

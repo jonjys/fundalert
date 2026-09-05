@@ -32,7 +32,8 @@ export default async function InvitePage({
       <p className="text-xs uppercase tracking-[0.2em] text-lime/80">Invite & earn</p>
       <h1 className="mt-2 text-3xl font-semibold">You were invited to Fundalert</h1>
       <p className="mt-3 text-sm leading-6 text-white/60">
-        Funding-rate radar. Tips only — not financial advice. No custody, no auto-trade.
+        Telegram trade cards when funding goes extreme. Tips only — not financial advice.
+        No custody, no auto-trade.
         Start a 29 SEK / 3-day trial and we add <span className="text-white">+3 days</span>{" "}
         when you pay. Your inviter gets <span className="text-white">+7 days</span> after
         that payment.

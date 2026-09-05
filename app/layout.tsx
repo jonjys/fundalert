@@ -18,11 +18,11 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: {
-    default: "Fundalert — perpetual funding-rate radar",
+    default: "Fundalert — Telegram trade cards when funding goes extreme",
     template: "%s · Fundalert",
   },
   description:
-    "Live crypto perpetual funding rates from Binance and Bybit, plus optional Telegram alerts. Informational only — not financial advice. No custody, no auto-trading.",
+    "Telegram trade cards when perpetual funding goes extreme. Bias, size, timing, invalidation. Informational only — not financial advice. No custody, no auto-trading.",
 };
 
 export default async function RootLayout({ children }: LayoutProps<"/">) {

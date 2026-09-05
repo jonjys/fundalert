@@ -79,3 +79,64 @@ export type TokenPayload = {
   exp: number | null;
   sid: string;
 };
+
+export type TradeSide = "long" | "short";
+
+export type Confidence = "low" | "med" | "high";
+
+export type PaperOutcome = "win" | "lose" | "flat" | "expired";
+
+export type TradeCard = {
+  id: string;
+  exchange: ExchangeId;
+  symbol: string;
+  base: string;
+  quote: string;
+  fundingRatePct: number;
+  annualizedPct: number;
+  expected24hPct: number;
+  markPrice: number | null;
+  nextFundingTime: number | null;
+  intervalHours: number;
+  side: TradeSide;
+  biasLabel: string;
+  sizePct: number;
+  entryNote: string;
+  invalidation: string;
+  collapsePct: number;
+  flipPct: number;
+  confidence: Confidence;
+  extreme: boolean;
+  disclaimer: string;
+};
+
+export type PaperPosition = {
+  id: string;
+  symbol: string;
+  exchange: ExchangeId;
+  side: TradeSide;
+  fundingRatePct: number;
+  intervalHours: number;
+  sizePct: number;
+  confidence: Confidence;
+  issuedAt: number;
+  settleAt: number;
+  settledAt: number | null;
+  exitFundingRatePct: number | null;
+  outcome: PaperOutcome | null;
+  pnlPct: number | null;
+};
+
+export type PaperTrackSummary = {
+  windowDays: number;
+  rule: string;
+  issued: number;
+  settled: number;
+  wins: number;
+  losses: number;
+  flats: number;
+  expired: number;
+  winRate: number | null;
+  sumPnlPct: number | null;
+  rows: PaperPosition[];
+};
