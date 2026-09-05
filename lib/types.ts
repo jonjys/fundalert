@@ -45,6 +45,7 @@ export type Entitlement = {
   telegramChatId: string | null;
   telegramThresholdPct: number;
   telegramEnabled: boolean;
+  telegramWatchlist: string | null;
   lastAlertAt: number | null;
   lastAlertKey: string | null;
   referralCode: string | null;
